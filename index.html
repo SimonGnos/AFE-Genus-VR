@@ -186,67 +186,6 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
   line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
-/* ---------- Verwaltung ---------- */
-.verwalten{
-  margin-left:auto;font-size:clamp(9px,2.4vh,11px);font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--gedaempft);
-  border:1px solid var(--linie);border-radius:100px;background:var(--karte);
-  padding:clamp(4px,1.2vh,7px) clamp(9px,1.3vw,13px);line-height:1;
-}
-.verwalten:active{background:var(--linie);}
-
-.merker{
-  font-size:clamp(9px,2.3vh,10.5px);font-weight:700;letter-spacing:.06em;
-  text-transform:uppercase;color:#8A5A2B;background:#F6ECDD;border:1px solid #E4CFB2;
-  border-radius:100px;padding:clamp(3px,1vh,6px) clamp(8px,1.2vw,12px);line-height:1;
-  margin-left:auto;white-space:nowrap;
-}
-
-.admin-liste{
-  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  display:flex;flex-direction:column;gap:var(--s2);padding-right:4px;
-}
-.admin-zeile{
-  border:1px solid var(--linie);border-radius:var(--r-klein);background:var(--karte);
-  padding:var(--s2) clamp(10px,1.4vw,14px);
-  display:flex;align-items:center;gap:clamp(7px,1.1vw,11px);flex-wrap:nowrap;
-}
-.admin-zeile .griff{
-  width:clamp(26px,7vh,34px);aspect-ratio:1;border-radius:9px;flex:0 0 auto;
-}
-.admin-zeile input,.admin-zeile select{
-  font-family:inherit;font-size:clamp(11px,2.9vh,13px);color:var(--tinte);
-  border:1px solid var(--linie);border-radius:9px;background:#FFF;
-  padding:clamp(5px,1.5vh,8px) clamp(7px,1vw,10px);min-width:0;
-}
-.admin-zeile input:focus,.admin-zeile select:focus{outline:2px solid var(--moos);outline-offset:0;}
-.admin-zeile .f-name{flex:1 1 22%;}
-.admin-zeile .f-stimmung{flex:1 1 28%;}
-.admin-zeile .f-datei{flex:1 1 30%;}
-.admin-zeile .f-min{flex:0 0 clamp(56px,8vw,74px);text-align:center;}
-.admin-zeile select{flex:0 0 clamp(76px,10vw,104px);}
-.admin-zeile .weg{
-  flex:0 0 auto;width:clamp(26px,7vh,32px);aspect-ratio:1;border-radius:50%;
-  border:1px solid var(--linie);background:#FFF;color:var(--gedaempft);
-  font-size:clamp(13px,3.4vh,16px);line-height:1;display:grid;place-items:center;
-}
-.admin-zeile .weg:active{background:var(--linie);}
-
-.admin-fuss{display:flex;gap:clamp(7px,1.1vw,11px);flex:0 0 auto;align-items:center;}
-.tat{
-  border-radius:var(--r-klein);padding:clamp(9px,2.6vh,14px) clamp(12px,1.8vw,20px);
-  font-size:clamp(11.5px,3vh,14px);font-weight:680;border:1px solid var(--linie);
-  background:var(--karte);white-space:nowrap;
-}
-.tat:active{background:var(--linie);}
-.tat.stark{background:var(--moos);color:#F2F5EE;border-color:var(--moos);}
-.tat.stark:active{background:var(--moos-tief);}
-.tat.leise{border:none;background:none;color:var(--gedaempft);font-weight:600;}
-.admin-fuss .notiz{
-  font-size:clamp(10px,2.6vh,12px);color:var(--gedaempft);line-height:1.35;
-  margin-left:auto;text-align:right;max-width:44%;
-}
-
 /* ---------- Informationsebene ---------- */
 #blende{position:fixed;inset:0;background:rgba(20,28,23,.46);display:none;z-index:20;}
 #blende.an{display:block;}
@@ -333,7 +272,6 @@ video{display:none;}
         <span class="mal"></span>
         <span class="name">GENUS-VR</span>
         <span class="rolle">Prototyp</span>
-        <button class="verwalten" id="knopfVerwalten">Inhalte</button>
       </div>
 
       <div class="pruefliste">
@@ -381,25 +319,6 @@ video{display:none;}
       <span><span class="name">Überrasch mich</span><span class="unter">Zufällige Wahl</span></span>
     </button>
     <div class="spalten" id="inhaltListe" style="flex:2 1 0"></div>
-  </div>
-</section>
-
-<!-- ==================== Verwaltung ==================== -->
-<section class="screen" id="s-admin">
-  <div class="kopf">
-    <button class="zurueck" data-ziel="s-start" aria-label="Zurück">‹</button>
-    <h1>Inhalte verwalten</h1>
-    <span class="merker" id="merker" hidden>Nur auf diesem Gerät</span>
-  </div>
-
-  <div class="admin-liste" id="adminListe"></div>
-
-  <div class="admin-fuss">
-    <button class="tat" id="tatNeu">+ Video</button>
-    <button class="tat stark" id="tatExport">videos.json sichern</button>
-    <button class="tat leise" id="tatReset">Zurücksetzen</button>
-    <span class="notiz">Änderungen gelten sofort auf diesem Gerät. Dauerhaft werden sie
-      erst, wenn die gesicherte Datei mit dem Ordner neu hochgeladen wird.</span>
   </div>
 </section>
 
@@ -513,18 +432,7 @@ function minuten(s){ return Math.round(s / 60); }
 
 const dauerListe = document.getElementById("dauerListe");
 
-/* katalogAktiv ist der eine, verbindliche Zustand. Die Eingabefelder der
-   Verwaltung schreiben direkt in dieses Objekt — es darf deshalb nie durch
-   eine Kopie ersetzt werden, sonst gehen laufende Bearbeitungen verloren. */
-let katalogAktiv = null;
-
 function uebernimm(katalog){
-  katalogAktiv = katalog;
-  aktualisiereAnsichten();
-}
-
-function aktualisiereAnsichten(){
-  const katalog = katalogAktiv || {};
   VIDEOS = (katalog.videos || []).filter(v => v && v.datei && v.sekunden > 0);
   VORLAUF_SEK = Number(katalog.vorlaufSekunden) >= 0 ? Number(katalog.vorlaufSekunden) : 30;
 
@@ -562,41 +470,13 @@ function baueDauern(){
   });
 }
 
-/* Reihenfolge beim Start: lokal gespeicherte Fassung, sonst videos.json,
-   sonst der Ersatzkatalog. */
-const SPEICHER = "genus-vr-katalog";
-
-function lokalLesen(){
-  try {
-    const roh = window.localStorage.getItem(SPEICHER);
-    return roh ? JSON.parse(roh) : null;
-  } catch (e) { return null; }
-}
-function lokalSchreiben(k){
-  try { window.localStorage.setItem(SPEICHER, JSON.stringify(k)); return true; }
-  catch (e) { return false; }
-}
-function lokalLoeschen(){
-  try { window.localStorage.removeItem(SPEICHER); } catch (e) {}
-}
-
-let katalogDatei = null;   // Stand aus videos.json
-
-function starteKatalog(){
-  const lokal = lokalLesen();
-  fetch("videos.json", { cache:"no-store" })
-    .then(a => { if (!a.ok) throw new Error(a.status); return a.json(); })
-    .then(k => { katalogDatei = k; uebernimm(lokal || k); })
-    .catch(f => {
-      console.info("videos.json nicht geladen:", f.message);
-      katalogDatei = KATALOG_ERSATZ;
-      uebernimm(lokal || KATALOG_ERSATZ);
-    })
-    .finally(() => {
-      document.getElementById("merker").hidden = !lokalLesen();
-    });
-}
-starteKatalog();
+fetch("videos.json", { cache:"no-store" })
+  .then(a => { if (!a.ok) throw new Error(a.status); return a.json(); })
+  .then(uebernimm)
+  .catch(f => {
+    console.info("videos.json nicht geladen, Ersatzkatalog aktiv:", f.message);
+    uebernimm(KATALOG_ERSATZ);
+  });
 
 
 /* ==========================================================================
@@ -633,136 +513,6 @@ function passende(){
 document.getElementById("knopfZufall").addEventListener("click", () => {
   const k = passende();
   starte(k[Math.floor(Math.random() * k.length)]);
-});
-
-
-/* ==========================================================================
-   5b · Verwaltung der Inhalte
-   Erlaubt das Anlegen, Ändern und Entfernen von Videos ohne Eingriff in den
-   Code. Änderungen wirken sofort auf diesem Gerät und lassen sich als
-   videos.json sichern, um sie mit dem nächsten Hochladen dauerhaft zu machen.
-   ========================================================================== */
-
-/* Farbstimmungen statt Hex-Eingabe — für die Bedienung ohne Vorkenntnisse. */
-const STIMMUNGEN = [
-  { schluessel:"wald",    titel:"Wald",    von:"#3E6B4A", bis:"#9CBE84" },
-  { schluessel:"wiese",   titel:"Wiese",   von:"#5A6B34", bis:"#D4CE96" },
-  { schluessel:"meer",    titel:"Meer",    von:"#2B5470", bis:"#7FA8C0" },
-  { schluessel:"bergsee", titel:"Bergsee", von:"#1F3F44", bis:"#8FB5B2" },
-  { schluessel:"nebel",   titel:"Nebel",   von:"#4A5560", bis:"#B7C2C6" },
-  { schluessel:"sand",    titel:"Sand",    von:"#7A6748", bis:"#E0D2B4" }
-];
-
-const adminListe = document.getElementById("adminListe");
-const merker     = document.getElementById("merker");
-
-document.getElementById("knopfVerwalten").addEventListener("click", () => {
-  baueAdmin();
-  zeige("s-admin");
-});
-
-function farbfeld(v){
-  return "radial-gradient(circle at 40% 34%," + (v.bis || "#8FAE84") +
-         "," + (v.von || "#3F5C46") + " 78%)";
-}
-
-function baueAdmin(){
-  adminListe.innerHTML = "";
-  const liste = katalogAktiv.videos || [];
-
-  if (!liste.length) {
-    adminListe.innerHTML =
-      '<p style="color:var(--gedaempft);font-size:13px;line-height:1.5;padding:14px 2px">' +
-      'Noch keine Inhalte. Lege mit «+ Video» einen Eintrag an.</p>';
-    return;
-  }
-
-  liste.forEach((v, i) => {
-    const z = document.createElement("div");
-    z.className = "admin-zeile";
-
-    const griff = document.createElement("span");
-    griff.className = "griff";
-    griff.style.background = farbfeld(v);
-
-    const name = feld("text", v.name || "", "Name", "f-name",
-      w => { v.name = w; griff.textContent = ""; });
-    const stim = feld("text", v.stimmung || "", "Kurzbeschrieb", "f-stimmung",
-      w => { v.stimmung = w; });
-    const datei = feld("text", v.datei || "", "video/datei.mp4", "f-datei",
-      w => { v.datei = w.trim(); });
-    const min = feld("number", Math.round((v.sekunden || 0) / 60), "Min.", "f-min",
-      w => { v.sekunden = Math.max(1, Math.round(Number(w) || 1)) * 60; });
-    min.min = "1"; min.step = "1";
-
-    const wahl = document.createElement("select");
-    STIMMUNGEN.forEach(f => {
-      const o = document.createElement("option");
-      o.value = f.schluessel; o.textContent = f.titel;
-      if (f.von.toLowerCase() === String(v.von).toLowerCase()) o.selected = true;
-      wahl.appendChild(o);
-    });
-    wahl.addEventListener("change", () => {
-      const f = STIMMUNGEN.find(x => x.schluessel === wahl.value);
-      v.von = f.von; v.bis = f.bis;
-      griff.style.background = farbfeld(v);
-      sichereLokal();
-    });
-
-    const weg = document.createElement("button");
-    weg.className = "weg"; weg.textContent = "×";
-    weg.setAttribute("aria-label", "Eintrag entfernen");
-    weg.addEventListener("click", () => {
-      katalogAktiv.videos.splice(i, 1);
-      sichereLokal(); baueAdmin();
-    });
-
-    z.append(griff, name, stim, datei, min, wahl, weg);
-    adminListe.appendChild(z);
-  });
-}
-
-function feld(typ, wert, platzhalter, klasse, beiAenderung){
-  const e = document.createElement("input");
-  e.type = typ; e.value = wert; e.placeholder = platzhalter; e.className = klasse;
-  e.addEventListener("change", () => { beiAenderung(e.value); sichereLokal(); });
-  return e;
-}
-
-/* Speichert lokal und baut die Auswahlbildschirme neu auf, damit Änderungen
-   unmittelbar sichtbar sind. */
-function sichereLokal(){
-  const ok = lokalSchreiben(katalogAktiv);
-  merker.hidden = !ok;
-  aktualisiereAnsichten();
-}
-
-document.getElementById("tatNeu").addEventListener("click", () => {
-  const f = STIMMUNGEN[0];
-  katalogAktiv.videos = katalogAktiv.videos || [];
-  katalogAktiv.videos.push({
-    name:"Neuer Inhalt", stimmung:"", datei:"video/", sekunden:120,
-    von:f.von, bis:f.bis
-  });
-  sichereLokal(); baueAdmin();
-  adminListe.scrollTop = adminListe.scrollHeight;
-});
-
-document.getElementById("tatExport").addEventListener("click", () => {
-  const text = JSON.stringify(katalogAktiv, null, 2);
-  const url = URL.createObjectURL(new Blob([text], { type:"application/json" }));
-  const a = document.createElement("a");
-  a.href = url; a.download = "videos.json";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
-
-document.getElementById("tatReset").addEventListener("click", () => {
-  if (!window.confirm("Alle Änderungen auf diesem Gerät verwerfen und den Stand aus videos.json laden?")) return;
-  lokalLoeschen();
-  uebernimm(JSON.parse(JSON.stringify(katalogDatei || KATALOG_ERSATZ)));
-  merker.hidden = true;
-  baueAdmin();
 });
 
 
