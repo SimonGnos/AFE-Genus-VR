@@ -1,0 +1,27 @@
+# Auslieferungskonfiguration für Netlify.
+# Videos werden lange im Browser gecacht (grosse, unveränderliche Dateien —
+# ein Austausch unter gleichem Namen würde sonst erst nach Ablauf sichtbar).
+# index.html und videos.json werden dagegen nie gecacht, damit eine neue
+# Version sofort nach dem Deploy auf dem iPhone ankommt und nicht erst nach
+# manuellem Leeren des Safari-Caches.
+
+[[headers]]
+  for = "/video/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/videos.json"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"

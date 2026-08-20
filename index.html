@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#EDEFEA">
+<title>GENUS-VR</title>
+<style>
+/* ==========================================================================
+   GENUS-VR Prototyp v0.4
+   Querformat, Smartphone. Die Höhe ist die knappe Achse — alle Grössen
+   leiten sich von vh ab, damit die Proportionen auf jedem Gerät halten.
+   Ablauf: Start -> Länge -> Inhalt -> Sitzung
+   ========================================================================== */
+
+:root{
+  --papier:#EDEFEA;
+  --karte:#F7F8F4;
+  --tinte:#1B2620;
+  --gedaempft:#6E7570;
+  --linie:#DCDFD8;
+  --moos:#3F5C46;
+  --moos-tief:#31492F;
+  --moos-hell:#C6D4C1;
+
+  /* Abstandsraster, an der Höhe ausgerichtet */
+  --s1:clamp(4px,1.2vh,7px);
+  --s2:clamp(7px,2vh,11px);
+  --s3:clamp(11px,3.2vh,17px);
+  --s4:clamp(14px,4.2vh,24px);
+
+  --r-gross:clamp(16px,4.6vh,24px);
+  --r-klein:clamp(11px,3.2vh,16px);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--papier);color:var(--tinte);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;overscroll-behavior:none;
+}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+:focus-visible{outline:3px solid var(--moos);outline-offset:3px;}
+
+/* ---------- Bildschirmgerüst ---------- */
+.screen{
+  position:absolute;inset:0;display:none;flex-direction:column;gap:var(--s3);
+  padding:calc(env(safe-area-inset-top) + var(--s4))
+          calc(env(safe-area-inset-right) + clamp(16px,3.2vw,26px))
+          calc(env(safe-area-inset-bottom) + var(--s4))
+          calc(env(safe-area-inset-left) + clamp(16px,3.2vw,26px));
+  max-width:1000px;margin:0 auto;
+}
+.screen.an{display:flex;}
+.spalten{display:flex;gap:clamp(10px,2vw,16px);flex:1 1 auto;min-height:0;}
+
+/* ---------- Wortmarke ---------- */
+.wortmarke{display:flex;align-items:center;gap:clamp(7px,2vh,10px);flex:0 0 auto;}
+.mal{
+  width:clamp(15px,4.4vh,22px);aspect-ratio:1;border-radius:50%;flex:0 0 auto;
+  border:clamp(2px,.6vh,3px) solid var(--moos);position:relative;
+}
+.mal::after{
+  content:"";position:absolute;inset:26%;border-radius:50%;background:var(--moos);
+}
+.wortmarke .name{
+  font-size:clamp(14px,4vh,19px);font-weight:720;letter-spacing:-.01em;line-height:1;
+}
+.wortmarke .rolle{
+  font-size:clamp(8px,2.1vh,9.5px);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gedaempft);font-weight:700;
+  border:1px solid var(--linie);border-radius:100px;
+  padding:clamp(2px,.7vh,4px) clamp(6px,.9vw,9px);line-height:1;
+}
+
+/* ---------- Kopfzeile der Unterseiten ---------- */
+.kopf{display:flex;align-items:center;gap:var(--s2);flex:0 0 auto;}
+.zurueck{
+  width:clamp(30px,8.4vh,38px);aspect-ratio:1;border-radius:50%;
+  border:1px solid var(--linie);background:var(--karte);
+  display:grid;place-items:center;font-size:clamp(15px,4.4vh,19px);line-height:1;flex:0 0 auto;
+}
+.zurueck:active{background:var(--linie);}
+.kopf h1{font-size:clamp(16px,4.8vh,22px);font-weight:700;letter-spacing:-.02em;}
+.kopf .echo{
+  margin-left:auto;font-size:clamp(10px,2.7vh,12.5px);font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--gedaempft);
+  border:1px solid var(--linie);border-radius:100px;
+  padding:clamp(4px,1.2vh,7px) clamp(9px,1.4vw,14px);white-space:nowrap;
+}
+
+/* ---------- 1 · Start ---------- */
+.linke-spalte{flex:1 1 44%;display:flex;flex-direction:column;gap:var(--s2);min-width:0;}
+
+.pruefliste{
+  border:1px solid var(--linie);border-radius:var(--r-klein);background:var(--karte);
+  padding:var(--s3) clamp(12px,1.7vw,17px);
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:var(--s2);
+}
+.pruefliste .titel{
+  font-size:clamp(9px,2.4vh,10.5px);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gedaempft);font-weight:700;
+}
+/* Gleich hohe Zeilen mit Haarlinie: füllt die Karte als bewusste Liste,
+   statt drei kurze Zeilen in viel Leerraum zu setzen. */
+.pruefliste ul{list-style:none;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
+.pruefliste li{
+  flex:1 1 0;min-height:0;
+  font-size:clamp(11px,3vh,13.5px);line-height:1.3;
+  display:flex;gap:var(--s2);align-items:center;
+}
+.pruefliste li + li{border-top:1px solid var(--linie);}
+.pruefliste li::before{
+  content:"";flex:0 0 auto;width:clamp(6px,1.7vh,8px);aspect-ratio:1;border-radius:50%;
+  border:1.5px solid var(--moos);
+}
+
+.infoleiste{display:flex;gap:clamp(6px,1vw,9px);flex:0 0 auto;}
+.info{
+  flex:1 1 0;border:1px solid var(--linie);border-radius:var(--r-klein);
+  background:var(--karte);padding:var(--s2) 4px;
+  display:flex;flex-direction:column;align-items:center;gap:var(--s1);
+  font-size:clamp(9.5px,2.6vh,11.5px);font-weight:650;letter-spacing:-.005em;
+}
+.info:active{background:var(--linie);}
+.info .zeichen{font-size:clamp(13px,3.6vh,17px);line-height:1;}
+
+.los{
+  flex:1 1 56%;border-radius:var(--r-gross);background:var(--moos);color:#F2F5EE;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);
+  position:relative;overflow:hidden;
+  transition:transform .18s ease,background-color .18s ease;
+}
+.los:active{transform:scale(.99);background:var(--moos-tief);}
+.los .titel{font-size:clamp(28px,13vh,58px);font-weight:730;letter-spacing:-.035em;line-height:1;}
+.los .unter{font-size:clamp(11px,3.2vh,15px);font-weight:500;color:var(--moos-hell);}
+/* Atmender Lichtschein — die Stimulation als Gestaltungsmotiv, einmal eingesetzt */
+.los::after{
+  content:"";position:absolute;inset:-40%;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.20),transparent 62%);
+  animation:atmen 7s ease-in-out infinite;pointer-events:none;
+}
+@keyframes atmen{0%,100%{opacity:.35;transform:scale(.9);}50%{opacity:1;transform:scale(1.08);}}
+
+/* ---------- 2 · Länge ---------- */
+.dauer{
+  flex:1 1 0;border:1px solid var(--linie);border-radius:var(--r-gross);background:var(--karte);
+  padding:var(--s4) clamp(14px,2vw,22px);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  text-align:left;gap:var(--s2);
+  transition:transform .18s ease,border-color .18s ease;
+}
+.dauer:active{transform:scale(.99);border-color:var(--moos);}
+.dauer .zahl{font-size:clamp(30px,13vh,58px);font-weight:730;letter-spacing:-.04em;line-height:.9;}
+.dauer .zahl small{font-size:.34em;font-weight:650;letter-spacing:0;margin-left:6px;color:var(--gedaempft);}
+.dauer .beschrieb{font-size:clamp(11px,3vh,13.5px);color:var(--gedaempft);line-height:1.35;}
+/* Zeitband: die Breite entspricht der Dauer im Verhältnis zur längsten */
+.band{width:100%;height:clamp(4px,1.2vh,6px);border-radius:100px;background:var(--linie);flex:0 0 auto;}
+.band i{display:block;height:100%;border-radius:100px;background:var(--moos);}
+
+/* ---------- 3 · Inhalt ---------- */
+.zufall,.inhalt{
+  flex:1 1 0;min-width:0;border-radius:var(--r-gross);overflow:hidden;
+  display:flex;flex-direction:column;
+  transition:transform .18s ease,border-color .18s ease,background-color .18s ease;
+}
+.zufall{background:var(--moos);color:#F2F5EE;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s3);}
+.zufall:active{transform:scale(.99);background:var(--moos-tief);}
+.zufall .zeichen{font-size:clamp(20px,7vh,34px);line-height:1;}
+.zufall .name{font-size:clamp(13px,3.8vh,17px);font-weight:700;letter-spacing:-.01em;display:block;text-align:center;}
+.zufall .unter{font-size:clamp(9.5px,2.6vh,11.5px);color:var(--moos-hell);font-weight:500;display:block;text-align:center;}
+
+.inhalt{border:1px solid var(--linie);background:var(--karte);}
+.inhalt:active{transform:scale(.99);border-color:var(--moos);}
+.inhalt .feld{flex:1 1 auto;min-height:0;}
+.inhalt .beschriftung{
+  flex:0 0 auto;padding:var(--s2) clamp(11px,1.6vw,16px) var(--s3);
+  display:flex;flex-direction:column;gap:1px;text-align:left;
+}
+.inhalt .name{font-size:clamp(13px,3.8vh,17px);font-weight:680;letter-spacing:-.01em;}
+.inhalt .stimmung{
+  font-size:clamp(9.5px,2.6vh,11.5px);color:var(--gedaempft);font-weight:500;
+  line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* ---------- Verwaltung ---------- */
+.verwalten{
+  margin-left:auto;font-size:clamp(9px,2.4vh,11px);font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--gedaempft);
+  border:1px solid var(--linie);border-radius:100px;background:var(--karte);
+  padding:clamp(4px,1.2vh,7px) clamp(9px,1.3vw,13px);line-height:1;
+}
+.verwalten:active{background:var(--linie);}
+
+.merker{
+  font-size:clamp(9px,2.3vh,10.5px);font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:#8A5A2B;background:#F6ECDD;border:1px solid #E4CFB2;
+  border-radius:100px;padding:clamp(3px,1vh,6px) clamp(8px,1.2vw,12px);line-height:1;
+  margin-left:auto;white-space:nowrap;
+}
+
+.admin-liste{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:var(--s2);padding-right:4px;
+}
+.admin-zeile{
+  border:1px solid var(--linie);border-radius:var(--r-klein);background:var(--karte);
+  padding:var(--s2) clamp(10px,1.4vw,14px);
+  display:flex;align-items:center;gap:clamp(7px,1.1vw,11px);flex-wrap:nowrap;
+}
+.admin-zeile .griff{
+  width:clamp(26px,7vh,34px);aspect-ratio:1;border-radius:9px;flex:0 0 auto;
+}
+.admin-zeile input,.admin-zeile select{
+  font-family:inherit;font-size:clamp(11px,2.9vh,13px);color:var(--tinte);
+  border:1px solid var(--linie);border-radius:9px;background:#FFF;
+  padding:clamp(5px,1.5vh,8px) clamp(7px,1vw,10px);min-width:0;
+}
+.admin-zeile input:focus,.admin-zeile select:focus{outline:2px solid var(--moos);outline-offset:0;}
+.admin-zeile .f-name{flex:1 1 22%;}
+.admin-zeile .f-stimmung{flex:1 1 28%;}
+.admin-zeile .f-datei{flex:1 1 30%;}
+.admin-zeile .f-min{flex:0 0 clamp(56px,8vw,74px);text-align:center;}
+.admin-zeile select{flex:0 0 clamp(76px,10vw,104px);}
+.admin-zeile .weg{
+  flex:0 0 auto;width:clamp(26px,7vh,32px);aspect-ratio:1;border-radius:50%;
+  border:1px solid var(--linie);background:#FFF;color:var(--gedaempft);
+  font-size:clamp(13px,3.4vh,16px);line-height:1;display:grid;place-items:center;
+}
+.admin-zeile .weg:active{background:var(--linie);}
+
+.admin-fuss{display:flex;gap:clamp(7px,1.1vw,11px);flex:0 0 auto;align-items:center;}
+.tat{
+  border-radius:var(--r-klein);padding:clamp(9px,2.6vh,14px) clamp(12px,1.8vw,20px);
+  font-size:clamp(11.5px,3vh,14px);font-weight:680;border:1px solid var(--linie);
+  background:var(--karte);white-space:nowrap;
+}
+.tat:active{background:var(--linie);}
+.tat.stark{background:var(--moos);color:#F2F5EE;border-color:var(--moos);}
+.tat.stark:active{background:var(--moos-tief);}
+.tat.leise{border:none;background:none;color:var(--gedaempft);font-weight:600;}
+.admin-fuss .notiz{
+  font-size:clamp(10px,2.6vh,12px);color:var(--gedaempft);line-height:1.35;
+  margin-left:auto;text-align:right;max-width:44%;
+}
+
+/* ---------- Informationsebene ---------- */
+#blende{position:fixed;inset:0;background:rgba(20,28,23,.46);display:none;z-index:20;}
+#blende.an{display:block;}
+#blatt{
+  position:fixed;z-index:21;left:50%;top:50%;
+  transform:translate(-50%,-50%) scale(.97);
+  width:min(600px,90vw);max-height:86dvh;overflow-y:auto;
+  background:var(--papier);border-radius:var(--r-gross);
+  padding:var(--s4) clamp(18px,3vw,28px);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s ease,transform .22s cubic-bezier(.32,.72,0,1);
+  -webkit-overflow-scrolling:touch;
+}
+#blatt.an{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto;}
+#blatt h2{font-size:clamp(16px,4.6vh,21px);font-weight:720;letter-spacing:-.02em;margin-bottom:var(--s3);}
+#blatt p{font-size:clamp(12px,3.1vh,14.5px);line-height:1.55;color:#333C36;margin-bottom:var(--s2);}
+/* Drei Schritte nebeneinander: Das Blatt ist im Querformat breit und
+   niedrig — nebeneinander liest sich der Ablauf als Abfolge und passt
+   ohne Scrollen. */
+#blatt ol{
+  list-style:none;counter-reset:s;
+  display:flex;gap:clamp(12px,2.2vw,20px);align-items:stretch;
+}
+#blatt ol li{
+  counter-increment:s;flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2);
+  font-size:clamp(11.5px,3vh,14px);line-height:1.45;
+}
+#blatt ol li::before{
+  content:counter(s);flex:0 0 auto;width:clamp(21px,5.6vh,26px);aspect-ratio:1;border-radius:50%;
+  background:var(--moos);color:#F2F5EE;display:grid;place-items:center;
+  font-size:clamp(10px,2.8vh,12.5px);font-weight:700;
+}
+@media (orientation:portrait){
+  #blatt ol{flex-direction:column;gap:var(--s3);}
+  #blatt ol li{flex-direction:row;align-items:flex-start;gap:clamp(9px,1.5vw,13px);}
+}
+#blatt ul{list-style:none;display:flex;flex-direction:column;gap:var(--s2);}
+#blatt ul li{font-size:clamp(12px,3.1vh,14.5px);line-height:1.45;display:flex;gap:clamp(8px,1.3vw,11px);}
+#blatt ul li::before{content:"—";color:var(--moos);flex:0 0 auto;}
+#blatt ul + p,#blatt ol + p{margin-top:var(--s3);}
+#blatt .schliessen{
+  width:100%;margin-top:var(--s4);padding:var(--s3);
+  border-radius:var(--r-klein);background:var(--tinte);color:var(--papier);
+  font-size:clamp(12.5px,3.2vh,15px);font-weight:680;
+}
+
+/* ---------- Hochformat-Hinweis ---------- */
+#drehen{
+  position:fixed;inset:0;z-index:40;background:var(--papier);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:40px;text-align:center;
+}
+#drehen .zeichen{
+  width:56px;height:36px;border:3px solid var(--moos);border-radius:7px;
+  animation:kippen 2.8s ease-in-out infinite;
+}
+#drehen p{font-size:17px;line-height:1.45;font-weight:680;max-width:16em;}
+#drehen small{font-size:13.5px;color:var(--gedaempft);max-width:21em;line-height:1.5;}
+@keyframes kippen{0%,42%{transform:rotate(90deg);}58%,100%{transform:rotate(0);}}
+@media (orientation:portrait) and (pointer:coarse){#drehen{display:flex;}}
+
+/* ---------- 4 · Sitzung ---------- */
+#sitzung{position:fixed;inset:0;background:#000;display:none;z-index:30;}
+#sitzung.an{display:block;}
+#buehne{display:block;width:100%;height:100%;}
+#stoerung{
+  position:fixed;inset:0;display:none;place-items:center;z-index:31;background:#000;
+  color:#C8CFC4;padding:34px;text-align:center;font-size:15px;line-height:1.6;
+}
+#stoerung.an{display:grid;}
+video{display:none;}
+
+@media (prefers-reduced-motion:reduce){*,*::after{animation:none !important;transition:none !important;}}
+</style>
+</head>
+<body>
+
+<!-- ==================== 1 · Start ==================== -->
+<section class="screen an" id="s-start">
+  <div class="spalten">
+    <div class="linke-spalte">
+      <div class="wortmarke">
+        <span class="mal"></span>
+        <span class="name">GENUS-VR</span>
+        <span class="rolle">Prototyp</span>
+        <button class="verwalten" id="knopfVerwalten">Inhalte</button>
+      </div>
+
+      <div class="pruefliste">
+        <div class="titel">Vor dem Start</div>
+        <ul>
+          <li>Kopfhörer verbunden</li>
+          <li>Person sitzt bequem</li>
+          <li>Raum ruhig</li>
+        </ul>
+      </div>
+
+      <div class="infoleiste">
+        <button class="info" data-blatt="ablauf"><span class="zeichen">◷</span>Ablauf</button>
+        <button class="info" data-blatt="sicherheit"><span class="zeichen">△</span>Sicherheit</button>
+        <button class="info" data-blatt="ueber"><span class="zeichen">◎</span>Über GENUS</button>
+      </div>
+    </div>
+
+    <button class="los" id="knopfStart">
+      <span class="titel">Start</span>
+      <span class="unter">Sitzung vorbereiten</span>
+    </button>
+  </div>
+</section>
+
+<!-- ==================== 2 · Länge ==================== -->
+<section class="screen" id="s-dauer">
+  <div class="kopf">
+    <button class="zurueck" data-ziel="s-start" aria-label="Zurück">‹</button>
+    <h1>Wie lange?</h1>
+  </div>
+  <div class="spalten" id="dauerListe"></div>
+</section>
+
+<!-- ==================== 3 · Inhalt ==================== -->
+<section class="screen" id="s-inhalt">
+  <div class="kopf">
+    <button class="zurueck" data-ziel="s-dauer" aria-label="Zurück">‹</button>
+    <h1>Welches Bild?</h1>
+    <span class="echo" id="dauerEcho"></span>
+  </div>
+  <div class="spalten">
+    <button class="zufall" id="knopfZufall">
+      <span class="zeichen">✦</span>
+      <span><span class="name">Überrasch mich</span><span class="unter">Zufällige Wahl</span></span>
+    </button>
+    <div class="spalten" id="inhaltListe" style="flex:2 1 0"></div>
+  </div>
+</section>
+
+<!-- ==================== Verwaltung ==================== -->
+<section class="screen" id="s-admin">
+  <div class="kopf">
+    <button class="zurueck" data-ziel="s-start" aria-label="Zurück">‹</button>
+    <h1>Inhalte verwalten</h1>
+    <span class="merker" id="merker" hidden>Nur auf diesem Gerät</span>
+  </div>
+
+  <div class="admin-liste" id="adminListe"></div>
+
+  <div class="admin-fuss">
+    <button class="tat" id="tatNeu">+ Video</button>
+    <button class="tat stark" id="tatExport">videos.json sichern</button>
+    <button class="tat leise" id="tatReset">Zurücksetzen</button>
+    <span class="notiz">Änderungen gelten sofort auf diesem Gerät. Dauerhaft werden sie
+      erst, wenn die gesicherte Datei mit dem Ordner neu hochgeladen wird.</span>
+  </div>
+</section>
+
+<!-- ==================== Informationsebene ==================== -->
+<div id="blende"></div>
+<div id="blatt"><div id="blattInhalt"></div>
+  <button class="schliessen" id="blattZu">Schliessen</button>
+</div>
+
+<!-- ==================== Hochformat-Hinweis ==================== -->
+<div id="drehen">
+  <span class="zeichen"></span>
+  <p>Drehe das Gerät quer.</p>
+  <small>Die Brille nimmt das Gerät liegend auf. So musst du zwischen Bedienung und Einlegen nicht drehen.</small>
+</div>
+
+<!-- ==================== 4 · Sitzung ==================== -->
+<div id="sitzung"><canvas id="buehne"></canvas></div>
+<div id="stoerung"></div>
+<video id="quelle" playsinline webkit-playsinline preload="auto"></video>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   1 · Konfiguration
+   ========================================================================== */
+
+/* Der Inhaltskatalog liegt in videos.json und wird beim Start geladen.
+   Videos hinzufügen, umbenennen oder austauschen erfolgt dort — diese
+   Datei muss dafür nicht angefasst werden (DE-18, DE-32).
+   Auswahlkriterien der Inhalte: naturnah, entschleunigt, positiv besetzt;
+   keine Dämmerung, keine schnellen Schnitte (DE-11, DE-12). */
+
+/* Ersatzkatalog, falls videos.json fehlt oder fehlerhaft ist. Greift auch,
+   wenn die Datei lokal per Doppelklick geöffnet wird — Browser verweigern
+   dabei das Nachladen von Dateien. */
+const KATALOG_ERSATZ = {
+  vorlaufSekunden: 30,
+  dauern: [
+    { sekunden:120, beschrieb:"Für den Einstieg und für erste Sitzungen" },
+    { sekunden:300, beschrieb:"Wenn die kurze Dauer gut vertragen wurde" }
+  ],
+  videos: [
+    { name:"Wald",    stimmung:"Licht zwischen Blättern", datei:"video/wald_2min.mp4",    sekunden:120, von:"#3E6B4A", bis:"#9CBE84" },
+    { name:"Wiese",   stimmung:"Gräser im Sommerwind",    datei:"video/wiese_2min.mp4",   sekunden:120, von:"#5A6B34", bis:"#D4CE96" },
+    { name:"Meer",    stimmung:"Ruhige Dünung",           datei:"video/meer_5min.mp4",    sekunden:300, von:"#2B5470", bis:"#7FA8C0" },
+    { name:"Bergsee", stimmung:"Stilles Wasser",          datei:"video/bergsee_5min.mp4", sekunden:300, von:"#1F3F44", bis:"#8FB5B2" }
+  ]
+};
+
+let VIDEOS = [];
+let DAUERN = [];
+
+/* Vorlauf: schwarzes Bild mit Countdown, in die Videodateien eingebrannt
+   (DE-32). Wird hier nicht erzeugt, nur berücksichtigt. Der Wert kommt aus
+   videos.json. */
+let VORLAUF_SEK = 30;
+
+/* Augenabstand. Verschiebt beide Bildhälften zur Mitte (positiv) oder nach
+   aussen (negativ), in Anteilen der halben Bildschirmbreite.
+   >>> Nur am Gerät durch die Linsen empirisch zu ermitteln. <<< */
+const AUGENABSTAND = 0.00;
+
+/* Stimulations-Overlay (DE-26, DE-27). Feste, illustrativ gewählte Werte.
+   Die Stimulation läuft permanent und ist nicht abschaltbar.
+   Auf einem 60-Hz-Display ist eine 40-Hz-Schwankung nicht frequenzgetreu
+   darstellbar; der sichtbare Eindruck ist eine Näherung (DE-03, DE-07). */
+const FLICKER_HZ        = 40;
+const FLICKER_MAX_ALPHA = 0.12;
+const FLICKER_FLAECHE   = 1.00;
+
+/* Berührung wirkt erst nach dem Vorlauf plus dieser Karenz (DE-17). */
+const TIPP_KARENZ_SEK = 2;
+
+
+/* ==========================================================================
+   2 · Zustand und Elemente
+   ========================================================================== */
+
+const video    = document.getElementById("quelle");
+const buehne   = document.getElementById("buehne");
+const ctx      = buehne.getContext("2d");
+const sitzung  = document.getElementById("sitzung");
+const stoerung = document.getElementById("stoerung");
+
+let laeuft = false, schleife = null, wachhalter = null;
+let aktiv = null, gewaehlteDauer = null;
+
+
+/* ==========================================================================
+   3 · Navigation
+   ========================================================================== */
+
+function zeige(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("an", s.id === id));
+}
+document.querySelectorAll(".zurueck").forEach(b =>
+  b.addEventListener("click", () => zeige(b.dataset.ziel)));
+document.getElementById("knopfStart").addEventListener("click", () => zeige("s-dauer"));
+
+function minuten(s){ return Math.round(s / 60); }
+
+
+/* ==========================================================================
+   4 · Katalog laden und Längenauswahl aufbauen
+   Die wählbaren Längen ergeben sich aus den vorhandenen Videos. Ein neues
+   Video mit einer bisher unbekannten Länge erzeugt automatisch eine neue
+   Option — in videos.json genügt der Eintrag.
+   ========================================================================== */
+
+const dauerListe = document.getElementById("dauerListe");
+
+/* katalogAktiv ist der eine, verbindliche Zustand. Die Eingabefelder der
+   Verwaltung schreiben direkt in dieses Objekt — es darf deshalb nie durch
+   eine Kopie ersetzt werden, sonst gehen laufende Bearbeitungen verloren. */
+let katalogAktiv = null;
+
+function uebernimm(katalog){
+  katalogAktiv = katalog;
+  aktualisiereAnsichten();
+}
+
+function aktualisiereAnsichten(){
+  const katalog = katalogAktiv || {};
+  VIDEOS = (katalog.videos || []).filter(v => v && v.datei && v.sekunden > 0);
+  VORLAUF_SEK = Number(katalog.vorlaufSekunden) >= 0 ? Number(katalog.vorlaufSekunden) : 30;
+
+  const beschriebe = {};
+  (katalog.dauern || []).forEach(d => { beschriebe[d.sekunden] = d.beschrieb; });
+
+  /* Nur Längen anbieten, zu denen es auch Videos gibt. */
+  const vorhanden = [...new Set(VIDEOS.map(v => v.sekunden))].sort((a, b) => a - b);
+  DAUERN = vorhanden.map(sek => ({
+    sekunden: sek,
+    beschrieb: beschriebe[sek] || (minuten(sek) + " Minuten Bildinhalt")
+  }));
+
+  baueDauern();
+}
+
+function baueDauern(){
+  dauerListe.innerHTML = "";
+  if (!DAUERN.length) {
+    dauerListe.innerHTML =
+      '<p style="align-self:center;color:var(--gedaempft);font-size:14px;line-height:1.5">' +
+      'Keine Inhalte gefunden. Prüfe videos.json und den Ordner "video".</p>';
+    return;
+  }
+  const laengste = Math.max.apply(null, DAUERN.map(d => d.sekunden));
+  DAUERN.forEach(d => {
+    const b = document.createElement("button");
+    b.className = "dauer";
+    b.innerHTML =
+      '<span class="zahl">' + minuten(d.sekunden) + '<small>Min.</small></span>' +
+      '<span class="band"><i style="width:' + Math.round(d.sekunden / laengste * 100) + '%"></i></span>' +
+      '<span class="beschrieb">' + d.beschrieb + '</span>';
+    b.addEventListener("click", () => oeffneInhalte(d.sekunden));
+    dauerListe.appendChild(b);
+  });
+}
+
+/* Reihenfolge beim Start: lokal gespeicherte Fassung, sonst videos.json,
+   sonst der Ersatzkatalog. */
+const SPEICHER = "genus-vr-katalog";
+
+function lokalLesen(){
+  try {
+    const roh = window.localStorage.getItem(SPEICHER);
+    return roh ? JSON.parse(roh) : null;
+  } catch (e) { return null; }
+}
+function lokalSchreiben(k){
+  try { window.localStorage.setItem(SPEICHER, JSON.stringify(k)); return true; }
+  catch (e) { return false; }
+}
+function lokalLoeschen(){
+  try { window.localStorage.removeItem(SPEICHER); } catch (e) {}
+}
+
+let katalogDatei = null;   // Stand aus videos.json
+
+function starteKatalog(){
+  const lokal = lokalLesen();
+  fetch("videos.json", { cache:"no-store" })
+    .then(a => { if (!a.ok) throw new Error(a.status); return a.json(); })
+    .then(k => { katalogDatei = k; uebernimm(lokal || k); })
+    .catch(f => {
+      console.info("videos.json nicht geladen:", f.message);
+      katalogDatei = KATALOG_ERSATZ;
+      uebernimm(lokal || KATALOG_ERSATZ);
+    })
+    .finally(() => {
+      document.getElementById("merker").hidden = !lokalLesen();
+    });
+}
+starteKatalog();
+
+
+/* ==========================================================================
+   5 · Inhaltsauswahl
+   ========================================================================== */
+
+const inhaltListe = document.getElementById("inhaltListe");
+
+function oeffneInhalte(sekunden){
+  gewaehlteDauer = sekunden;
+  document.getElementById("dauerEcho").textContent = minuten(sekunden) + " Min.";
+  inhaltListe.innerHTML = "";
+
+  passende().forEach(v => {
+    const b = document.createElement("button");
+    b.className = "inhalt";
+    const hell = v.bis || "#8FAE84", dunkel = v.von || "#3F5C46";
+    b.innerHTML =
+      '<span class="feld" style="background:radial-gradient(circle at 42% 36%,' +
+        hell + ',' + dunkel + ' 78%)"></span>' +
+      '<span class="beschriftung"><span class="name">' + v.name + '</span>' +
+      '<span class="stimmung">' + v.stimmung + '</span></span>';
+    b.addEventListener("click", () => starte(v));   // synchroner Klick-Handler
+    inhaltListe.appendChild(b);
+  });
+
+  zeige("s-inhalt");
+}
+
+function passende(){
+  return VIDEOS.filter(v => v.sekunden === gewaehlteDauer);
+}
+
+document.getElementById("knopfZufall").addEventListener("click", () => {
+  const k = passende();
+  starte(k[Math.floor(Math.random() * k.length)]);
+});
+
+
+/* ==========================================================================
+   5b · Verwaltung der Inhalte
+   Erlaubt das Anlegen, Ändern und Entfernen von Videos ohne Eingriff in den
+   Code. Änderungen wirken sofort auf diesem Gerät und lassen sich als
+   videos.json sichern, um sie mit dem nächsten Hochladen dauerhaft zu machen.
+   ========================================================================== */
+
+/* Farbstimmungen statt Hex-Eingabe — für die Bedienung ohne Vorkenntnisse. */
+const STIMMUNGEN = [
+  { schluessel:"wald",    titel:"Wald",    von:"#3E6B4A", bis:"#9CBE84" },
+  { schluessel:"wiese",   titel:"Wiese",   von:"#5A6B34", bis:"#D4CE96" },
+  { schluessel:"meer",    titel:"Meer",    von:"#2B5470", bis:"#7FA8C0" },
+  { schluessel:"bergsee", titel:"Bergsee", von:"#1F3F44", bis:"#8FB5B2" },
+  { schluessel:"nebel",   titel:"Nebel",   von:"#4A5560", bis:"#B7C2C6" },
+  { schluessel:"sand",    titel:"Sand",    von:"#7A6748", bis:"#E0D2B4" }
+];
+
+const adminListe = document.getElementById("adminListe");
+const merker     = document.getElementById("merker");
+
+document.getElementById("knopfVerwalten").addEventListener("click", () => {
+  baueAdmin();
+  zeige("s-admin");
+});
+
+function farbfeld(v){
+  return "radial-gradient(circle at 40% 34%," + (v.bis || "#8FAE84") +
+         "," + (v.von || "#3F5C46") + " 78%)";
+}
+
+function baueAdmin(){
+  adminListe.innerHTML = "";
+  const liste = katalogAktiv.videos || [];
+
+  if (!liste.length) {
+    adminListe.innerHTML =
+      '<p style="color:var(--gedaempft);font-size:13px;line-height:1.5;padding:14px 2px">' +
+      'Noch keine Inhalte. Lege mit «+ Video» einen Eintrag an.</p>';
+    return;
+  }
+
+  liste.forEach((v, i) => {
+    const z = document.createElement("div");
+    z.className = "admin-zeile";
+
+    const griff = document.createElement("span");
+    griff.className = "griff";
+    griff.style.background = farbfeld(v);
+
+    const name = feld("text", v.name || "", "Name", "f-name",
+      w => { v.name = w; griff.textContent = ""; });
+    const stim = feld("text", v.stimmung || "", "Kurzbeschrieb", "f-stimmung",
+      w => { v.stimmung = w; });
+    const datei = feld("text", v.datei || "", "video/datei.mp4", "f-datei",
+      w => { v.datei = w.trim(); });
+    const min = feld("number", Math.round((v.sekunden || 0) / 60), "Min.", "f-min",
+      w => { v.sekunden = Math.max(1, Math.round(Number(w) || 1)) * 60; });
+    min.min = "1"; min.step = "1";
+
+    const wahl = document.createElement("select");
+    STIMMUNGEN.forEach(f => {
+      const o = document.createElement("option");
+      o.value = f.schluessel; o.textContent = f.titel;
+      if (f.von.toLowerCase() === String(v.von).toLowerCase()) o.selected = true;
+      wahl.appendChild(o);
+    });
+    wahl.addEventListener("change", () => {
+      const f = STIMMUNGEN.find(x => x.schluessel === wahl.value);
+      v.von = f.von; v.bis = f.bis;
+      griff.style.background = farbfeld(v);
+      sichereLokal();
+    });
+
+    const weg = document.createElement("button");
+    weg.className = "weg"; weg.textContent = "×";
+    weg.setAttribute("aria-label", "Eintrag entfernen");
+    weg.addEventListener("click", () => {
+      katalogAktiv.videos.splice(i, 1);
+      sichereLokal(); baueAdmin();
+    });
+
+    z.append(griff, name, stim, datei, min, wahl, weg);
+    adminListe.appendChild(z);
+  });
+}
+
+function feld(typ, wert, platzhalter, klasse, beiAenderung){
+  const e = document.createElement("input");
+  e.type = typ; e.value = wert; e.placeholder = platzhalter; e.className = klasse;
+  e.addEventListener("change", () => { beiAenderung(e.value); sichereLokal(); });
+  return e;
+}
+
+/* Speichert lokal und baut die Auswahlbildschirme neu auf, damit Änderungen
+   unmittelbar sichtbar sind. */
+function sichereLokal(){
+  const ok = lokalSchreiben(katalogAktiv);
+  merker.hidden = !ok;
+  aktualisiereAnsichten();
+}
+
+document.getElementById("tatNeu").addEventListener("click", () => {
+  const f = STIMMUNGEN[0];
+  katalogAktiv.videos = katalogAktiv.videos || [];
+  katalogAktiv.videos.push({
+    name:"Neuer Inhalt", stimmung:"", datei:"video/", sekunden:120,
+    von:f.von, bis:f.bis
+  });
+  sichereLokal(); baueAdmin();
+  adminListe.scrollTop = adminListe.scrollHeight;
+});
+
+document.getElementById("tatExport").addEventListener("click", () => {
+  const text = JSON.stringify(katalogAktiv, null, 2);
+  const url = URL.createObjectURL(new Blob([text], { type:"application/json" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "videos.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+document.getElementById("tatReset").addEventListener("click", () => {
+  if (!window.confirm("Alle Änderungen auf diesem Gerät verwerfen und den Stand aus videos.json laden?")) return;
+  lokalLoeschen();
+  uebernimm(JSON.parse(JSON.stringify(katalogDatei || KATALOG_ERSATZ)));
+  merker.hidden = true;
+  baueAdmin();
+});
+
+
+/* ==========================================================================
+   6 · Informationsebene
+   Löst die Anforderung nach einer kurzen, visuellen Einstiegsanleitung
+   (AF-K3.1-06), ohne die scrollfreie Startansicht zu überladen.
+   ========================================================================== */
+
+const BLAETTER = {
+  ablauf:{
+    titel:"So läuft eine Sitzung ab",
+    html:'<ol>' +
+      '<li>Länge und Bild wählen. Die Wiedergabe startet sofort.</li>' +
+      '<li>30 Sekunden Zeit: Handy einlegen, Brille aufsetzen. Der Countdown läuft ' +
+      'im Bild mit.</li>' +
+      '<li>Das Bild beginnt. Die Sitzung endet von selbst, die Brille kann jederzeit ' +
+      'abgenommen werden.</li></ol>'
+  },
+  sicherheit:{
+    titel:"Sicherheit",
+    html:'<ul>' +
+      '<li>Nicht anwenden bei Epilepsie oder bekannter Lichtempfindlichkeit.</li>' +
+      '<li>Die Sitzung findet im Sitzen statt. Nicht aufstehen oder umhergehen.</li>' +
+      '<li>Bei Unwohlsein, Schwindel oder Unruhe die Brille abnehmen. Das beendet ' +
+      'die Sitzung.</li>' +
+      '<li>Bleibe während der Sitzung in der Nähe.</li></ul>' +
+      '<p>Dies ist ein Prototyp für eine Studie zur Gebrauchstauglichkeit und keine ' +
+      'medizinische Anwendung.</p>'
+  },
+  ueber:{
+    titel:"Über GENUS",
+    html:'<p>Studien zeigen, dass Licht- und Tonreize im Takt von 40 Hertz die ' +
+      'Gammawellen im Gehirn anregen können. In Tiermodellen zur Alzheimer-Erkrankung ' +
+      'wurden dabei Rückgänge der Amyloid-Ablagerungen beobachtet.</p>' +
+      '<p>GENUS-VR untersucht, ob sich diese Stimulation in einer immersiven Umgebung ' +
+      'angenehm und alltagstauglich anwenden lässt.</p>' +
+      '<p>Der Prototyp veranschaulicht die Stimulation. Die Frequenz ist nicht ' +
+      'messtechnisch verifiziert und die Anwendung hat keine belegte Wirkung.</p>'
+  }
+};
+
+const blende = document.getElementById("blende");
+const blatt  = document.getElementById("blatt");
+
+document.querySelectorAll(".info").forEach(b =>
+  b.addEventListener("click", () => {
+    const d = BLAETTER[b.dataset.blatt];
+    document.getElementById("blattInhalt").innerHTML = "<h2>" + d.titel + "</h2>" + d.html;
+    blende.classList.add("an");
+    requestAnimationFrame(() => blatt.classList.add("an"));
+  }));
+
+function schliesseBlatt(){
+  blatt.classList.remove("an");
+  setTimeout(() => blende.classList.remove("an"), 240);
+}
+blende.addEventListener("click", schliesseBlatt);
+document.getElementById("blattZu").addEventListener("click", schliesseBlatt);
+
+
+/* ==========================================================================
+   7 · Sitzung starten
+   Alles Wesentliche läuft SYNCHRON im Klick-Handler: iOS Safari erlaubt
+   Tonwiedergabe nur unmittelbar aus einer Nutzerinteraktion. Kein await,
+   kein setTimeout vor dem play().
+   ========================================================================== */
+
+function starte(v){
+  if (laeuft) return;
+  aktiv = v;
+
+  video.src = v.datei;
+  video.currentTime = 0;
+  video.muted = false;
+  video.volume = 1;
+
+  const versuch = video.play();
+  if (versuch && versuch.catch) {
+    versuch.catch(() => zeigeStoerung(
+      "Das Video konnte nicht gestartet werden.\n\n" +
+      "Lege " + v.datei + " in denselben Ordner wie index.html und lade die Seite neu."
+    ));
+  }
+
+  laeuft = true;
+  sitzung.classList.add("an");
+  passeGroesseAn();
+  wachHalten();
+  schleife = requestAnimationFrame(zeichne);
+}
+
+
+/* ==========================================================================
+   8 · Zeichenschleife
+   Ein Videoelement wird pro Bild zweimal auf die Leinwand gezeichnet (DE-04).
+   Overlay und Timer entstehen in derselben Schleife.
+   ========================================================================== */
+
+function zeichne(){
+  if (!laeuft) return;
+
+  const b = buehne.width, h = buehne.height, halbe = b / 2;
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, b, h);
+
+  if (video.videoWidth) {
+    const massstab = Math.min(halbe / video.videoWidth, h / video.videoHeight);
+    const zb = video.videoWidth * massstab, zh = video.videoHeight * massstab;
+    const versatz = AUGENABSTAND * halbe, y = (h - zh) / 2;
+    ctx.drawImage(video, (halbe - zb) / 2 + versatz, y, zb, zh);
+    ctx.drawImage(video, halbe + (halbe - zb) / 2 - versatz, y, zb, zh);
+  }
+
+  const t = video.currentTime;
+
+  /* Overlay und Timer erst nach dem Vorlauf — der eingebrannte Countdown
+     soll lesbar bleiben und die Stimulation erst einsetzen, wenn die Brille
+     sitzt (DE-32). */
+  if (t >= VORLAUF_SEK) {
+    const welle = (Math.sin(t * 2 * Math.PI * FLICKER_HZ) + 1) / 2;
+    ctx.fillStyle = "rgba(255,255,255," + (welle * FLICKER_MAX_ALPHA).toFixed(4) + ")";
+    const fh = h * FLICKER_FLAECHE;
+    ctx.fillRect(0, (h - fh) / 2, b, fh);
+    zeichneTimer(Math.max(0, aktiv.sekunden - (t - VORLAUF_SEK)), b, h);
+  }
+
+  schleife = requestAnimationFrame(zeichne);
+}
+
+function zeichneTimer(rest, b, h){
+  const text = Math.floor(rest / 60) + ":" + String(Math.floor(rest % 60)).padStart(2, "0");
+  ctx.font = "500 " + Math.round(h * 0.038) + "px -apple-system, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(255,255,255,0.42)";
+  const y = h - Math.round(h * 0.075);
+  ctx.fillText(text, b * 0.25, y);
+  ctx.fillText(text, b * 0.75, y);
+}
+
+
+/* ==========================================================================
+   9 · Sitzung beenden
+   Kein Bedienelement zum Abbrechen (DE-16). Rückkehr durch Berührung (DE-17)
+   oder automatisch nach Videoende (DE-31).
+   ========================================================================== */
+
+function beende(){
+  if (!laeuft) return;
+  laeuft = false;
+  cancelAnimationFrame(schleife);
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  sitzung.classList.remove("an");
+  stoerung.classList.remove("an");
+  wachFreigeben();
+  zeige("s-start");
+}
+
+video.addEventListener("ended", beende);
+sitzung.addEventListener("click", () => {
+  if (laeuft && video.currentTime >= VORLAUF_SEK + TIPP_KARENZ_SEK) beende();
+});
+stoerung.addEventListener("click", beende);
+
+function zeigeStoerung(text){
+  stoerung.textContent = text;
+  stoerung.classList.add("an");
+}
+
+
+/* ==========================================================================
+   10 · Leinwandgrösse und Bildschirmsperre
+   ========================================================================== */
+
+function passeGroesseAn(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  buehne.width  = Math.round(window.innerWidth  * dpr);
+  buehne.height = Math.round(window.innerHeight * dpr);
+}
+window.addEventListener("resize", () => { if (laeuft) passeGroesseAn(); });
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => { if (laeuft) passeGroesseAn(); }, 260);
+});
+
+/* Wake Lock im Klick-Handler anfordern, damit der Bildschirm während des
+   Einspannens nicht abdunkelt. Fehlende Unterstützung führt nicht zum
+   Abbruch. */
+function wachHalten(){
+  if (!("wakeLock" in navigator)) {
+    console.info("Wake Lock nicht verfügbar — Auto-Sperre am Gerät ausschalten.");
+    return;
+  }
+  navigator.wakeLock.request("screen")
+    .then(w => { wachhalter = w; })
+    .catch(e => console.info("Wake Lock abgelehnt:", e.name));
+}
+function wachFreigeben(){
+  if (wachhalter) { wachhalter.release().catch(() => {}); wachhalter = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && laeuft && !wachhalter) wachHalten();
+});
+</script>
+</body>
+</html>

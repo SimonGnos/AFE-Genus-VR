@@ -1,0 +1,15 @@
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Editoren
+.vscode/
+.idea/
+*.swp
+
+# Netlify
+.netlify/
+
+# Temporäre Arbeitsdateien
+*.tmp
+*~

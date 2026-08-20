@@ -1,0 +1,43 @@
+{
+  "vorlaufSekunden": 30,
+
+  "dauern": [
+    { "sekunden": 120, "beschrieb": "Für den Einstieg und für erste Sitzungen" },
+    { "sekunden": 300, "beschrieb": "Wenn die kurze Dauer gut vertragen wurde" }
+  ],
+
+  "videos": [
+    {
+      "name": "Wald",
+      "stimmung": "Licht zwischen Blättern",
+      "datei": "video/wald_2min.mp4",
+      "sekunden": 120,
+      "von": "#3E6B4A",
+      "bis": "#9CBE84"
+    },
+    {
+      "name": "Wiese",
+      "stimmung": "Gräser im Sommerwind",
+      "datei": "video/wiese_2min.mp4",
+      "sekunden": 120,
+      "von": "#5A6B34",
+      "bis": "#D4CE96"
+    },
+    {
+      "name": "Meer",
+      "stimmung": "Ruhige Dünung",
+      "datei": "video/meer_5min.mp4",
+      "sekunden": 300,
+      "von": "#2B5470",
+      "bis": "#7FA8C0"
+    },
+    {
+      "name": "Bergsee",
+      "stimmung": "Stilles Wasser",
+      "datei": "video/bergsee_5min.mp4",
+      "sekunden": 300,
+      "von": "#1F3F44",
+      "bis": "#8FB5B2"
+    }
+  ]
+}
