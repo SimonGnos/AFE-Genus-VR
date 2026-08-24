@@ -66,11 +66,7 @@ Details und Begründung stehen in [`SPEC.md`](./SPEC.md).
 
 ## Inhalte pflegen
 
-Videos lassen sich über die Verwaltung in der App selbst bearbeiten (Knopf
-**„Inhalte“** auf dem Startbildschirm) oder direkt in `videos.json`. Eine neue
-Länge erzeugt automatisch eine neue Auswahloption — ohne Codeänderung.
-
-Vollständige Anleitung inklusive Deployment: [`ANLEITUNG.md`](./ANLEITUNG.md).
+Videos können nur zentral durch den Admin angepasst werden. 
 
 ## Technischer Stand
 
