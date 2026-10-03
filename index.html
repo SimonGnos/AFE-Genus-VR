@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#EDEFEA">
 <title>GENUS-VR</title>
@@ -1076,21 +1077,27 @@ function hochladen(datei){
   return verwaltungsRuf("uploadUrl", { dateiname: datei.name }).then(z =>
     new Promise((fertig, scheitern) => {
       const x = new XMLHttpRequest();
+      /* Keine Authorization-Kopfzeile: die Erlaubnis steckt in der Signatur
+         der Adresse. Der publishable key ist kein JWT, und der Speicher wies
+         die Anfrage ab, sobald er ihn als solches zu lesen versuchte. */
       x.open("PUT", z.uploadUrl);
-      /* Die Erlaubnis steckt in der Signatur der Adresse; diese Kopfzeilen
-         setzt die Supabase-Bibliothek an dieser Stelle ebenfalls. */
-      x.setRequestHeader("apikey", SUPABASE_KEY);
-      x.setRequestHeader("authorization", "Bearer " + SUPABASE_KEY);
       x.upload.addEventListener("progress", e => {
         if (e.lengthComputable) {
           vBalken.firstElementChild.style.width =
             Math.round(e.loaded / e.total * 100) + "%";
         }
       });
-      x.onload = () => x.status < 300
-        ? fertig(z.oeffentlicheUrl)
-        : scheitern(new Error("Hochladen fehlgeschlagen (" + x.status + ")."));
-      x.onerror = () => scheitern(new Error("Hochladen fehlgeschlagen."));
+      /* Die Begründung des Speichers mit anzeigen — ohne sie ist ein
+         fehlgeschlagener Upload nicht zu diagnostizieren. */
+      x.onload = () => {
+        if (x.status < 300) return fertig(z.oeffentlicheUrl);
+        let grund = "";
+        try { grund = JSON.parse(x.responseText).message || ""; }
+        catch (e) { grund = (x.responseText || "").slice(0, 200); }
+        scheitern(new Error("Hochladen fehlgeschlagen (" + x.status + ")" +
+          (grund ? ": " + grund : ".")));
+      };
+      x.onerror = () => scheitern(new Error("Hochladen fehlgeschlagen — keine Verbindung."));
       x.send(datei);
     })
   );
