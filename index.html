@@ -259,6 +259,61 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 #stoerung.an{display:grid;}
 video{display:none;}
 
+/* ---------- Verwaltung ----------
+   Bewusst ausserhalb des vh-Rasters der Studienansichten: hier sind viele
+   Felder unterzubringen, Scrollen ist in Ordnung. Die Ansicht liegt über
+   dem Hochformat-Hinweis, damit sie sich auch stehend bedienen lässt. */
+#verwaltung{
+  position:fixed;inset:0;z-index:50;background:var(--papier);
+  display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+#verwaltung.an{display:block;}
+.v-flaeche{
+  max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px;
+  padding:calc(env(safe-area-inset-top) + 18px) clamp(14px,4vw,28px)
+          calc(env(safe-area-inset-bottom) + 40px);
+}
+.v-kopf{display:flex;align-items:center;gap:12px;}
+.v-kopf h1{font-size:21px;font-weight:720;letter-spacing:-.02em;}
+.v-zu{
+  margin-left:auto;width:38px;height:38px;border-radius:50%;flex:0 0 auto;
+  border:1px solid var(--linie);background:var(--karte);
+  font-size:21px;line-height:1;display:grid;place-items:center;
+}
+#verwaltung h2{
+  font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--gedaempft);font-weight:700;margin-top:8px;
+}
+.v-karte{
+  border:1px solid var(--linie);border-radius:14px;background:var(--karte);
+  padding:14px;display:flex;flex-direction:column;gap:11px;
+}
+.v-gitter{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;}
+.v-feld{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.v-feld label{
+  font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--gedaempft);font-weight:700;
+}
+#verwaltung input{
+  font:inherit;font-size:16px;padding:9px 11px;width:100%;min-width:0;
+  border:1px solid var(--linie);border-radius:9px;background:#fff;color:var(--tinte);
+}
+#verwaltung input[type=color]{padding:3px;height:42px;}
+#verwaltung input[type=file]{background:transparent;border-style:dashed;font-size:14px;}
+.v-knopf{
+  background:var(--moos);color:#F2F5EE;border-radius:9px;
+  padding:10px 16px;font-size:14px;font-weight:680;
+}
+.v-knopf:disabled{opacity:.4;}
+.v-knopf.warn{background:transparent;color:#9C3A2E;border:1px solid #E3C4BE;}
+.v-reihe{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.v-hinweis{font-size:13px;line-height:1.5;color:var(--gedaempft);word-break:break-all;}
+.v-meldung{font-size:13px;line-height:1.5;color:#9C3A2E;}
+.v-meldung.gut{color:var(--moos);}
+.v-balken{height:6px;border-radius:100px;background:var(--linie);overflow:hidden;display:none;}
+.v-balken.an{display:block;}
+.v-balken i{display:block;height:100%;width:0;background:var(--moos);transition:width .2s ease;}
+
 @media (prefers-reduced-motion:reduce){*,*::after{animation:none !important;transition:none !important;}}
 </style>
 </head>
@@ -272,6 +327,8 @@ video{display:none;}
         <span class="mal"></span>
         <span class="name">GENUS-VR</span>
         <span class="rolle">Prototyp</span>
+        <button class="zurueck" id="knopfVerwaltung" style="margin-left:auto"
+                aria-label="Inhalte verwalten">⚙</button>
       </div>
 
       <div class="pruefliste">
@@ -335,6 +392,61 @@ video{display:none;}
   <small>Die Brille nimmt das Gerät liegend auf. So musst du zwischen Bedienung und Einlegen nicht drehen.</small>
 </div>
 
+<!-- ==================== Verwaltung ==================== -->
+<div id="verwaltung">
+  <div class="v-flaeche">
+    <div class="v-kopf">
+      <h1>Inhalte</h1>
+      <button class="v-zu" id="verwaltungZu" aria-label="Schliessen">×</button>
+    </div>
+
+    <!-- Code-Abfrage -->
+    <div id="vTor">
+      <div class="v-karte">
+        <p class="v-hinweis">Zum Ändern der Inhalte wird der Admin-Code benötigt.</p>
+        <div class="v-reihe">
+          <input id="vCode" type="password" autocomplete="off" placeholder="Admin-Code"
+                 style="flex:1 1 180px">
+          <button class="v-knopf" id="vAnmelden">Weiter</button>
+        </div>
+        <p class="v-meldung" id="vTorMeldung"></p>
+      </div>
+    </div>
+
+    <!-- Verwaltung nach erfolgreicher Anmeldung -->
+    <div id="vBereich" hidden>
+      <h2>Vorhandene Inhalte</h2>
+      <div id="vListe" style="display:flex;flex-direction:column;gap:12px"></div>
+
+      <h2>Neues Video</h2>
+      <div class="v-karte">
+        <div class="v-feld">
+          <label for="vDatei">Videodatei</label>
+          <input id="vDatei" type="file" accept="video/*">
+        </div>
+        <p class="v-hinweis" id="vNeuLaenge"></p>
+        <div class="v-gitter">
+          <div class="v-feld"><label for="vNeuName">Name</label>
+            <input id="vNeuName" type="text" placeholder="Bergbach"></div>
+          <div class="v-feld"><label for="vNeuStimmung">Kurzbeschrieb</label>
+            <input id="vNeuStimmung" type="text" placeholder="Wasser über Steine"></div>
+          <div class="v-feld"><label for="vNeuSortierung">Reihenfolge</label>
+            <input id="vNeuSortierung" type="number" step="1" value="10"></div>
+          <div class="v-feld"><label for="vNeuVon">Farbe dunkel</label>
+            <input id="vNeuVon" type="color" value="#2B5470"></div>
+          <div class="v-feld"><label for="vNeuBis">Farbe hell</label>
+            <input id="vNeuBis" type="color" value="#7FA8C0"></div>
+        </div>
+        <div class="v-balken" id="vBalken"><i></i></div>
+        <div class="v-reihe">
+          <button class="v-knopf" id="vAnlegen">Hochladen und anlegen</button>
+          <span class="v-meldung" id="vNeuMeldung"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== 4 · Sitzung ==================== -->
 <div id="sitzung"><canvas id="buehne"></canvas></div>
 <div id="stoerung"></div>
@@ -347,9 +459,18 @@ video{display:none;}
    1 · Konfiguration
    ========================================================================== */
 
-/* Der Inhaltskatalog liegt in videos.json und wird beim Start geladen.
-   Videos hinzufügen, umbenennen oder austauschen erfolgt dort — diese
-   Datei muss dafür nicht angefasst werden (DE-18, DE-32).
+/* Supabase hält den Inhaltskatalog und die Videodateien. Beide Angaben
+   gehören absichtlich offen in den Quelltext: der publishable key darf laut
+   der Zugriffsregel in der Datenbank nur lesen. Geschrieben wird
+   ausschliesslich über die Edge Function, die den Admin-Code prüft. */
+const SUPABASE_URL = "https://rkwuolqdawkvqlqxzddt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Lll7SLn3F22x4DAJibsUkA_NGnz1G_1";
+const VERWALTUNG_URL = SUPABASE_URL + "/functions/v1/admin";
+
+/* Der Inhaltskatalog kommt aus Supabase und lässt sich in der App selbst
+   pflegen (Knopf oben rechts). Fällt Supabase aus, greift videos.json,
+   danach der eingebaute Ersatzkatalog — die Studie läuft weiter (DE-18,
+   DE-32).
    Auswahlkriterien der Inhalte: naturnah, entschleunigt, positiv besetzt;
    keine Dämmerung, keine schnellen Schnitte (DE-11, DE-12). */
 
@@ -422,6 +543,13 @@ document.getElementById("knopfStart").addEventListener("click", () => zeige("s-d
 
 function minuten(s){ return Math.round(s / 60); }
 
+/* Namen und Beschriebe kommen aus der Datenbank und werden in Vorlagen
+   eingesetzt — hier entschärft, damit kein Eintrag Markup einschleusen kann. */
+function sicher(wert){
+  return String(wert == null ? "" : wert).replace(/[&<>"]/g,
+    z => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" })[z]);
+}
+
 
 /* ==========================================================================
    4 · Katalog laden und Längenauswahl aufbauen
@@ -470,13 +598,41 @@ function baueDauern(){
   });
 }
 
-fetch("videos.json", { cache:"no-store" })
-  .then(a => { if (!a.ok) throw new Error(a.status); return a.json(); })
-  .then(uebernimm)
-  .catch(f => {
-    console.info("videos.json nicht geladen, Ersatzkatalog aktiv:", f.message);
-    uebernimm(KATALOG_ERSATZ);
+/* videos.json liefert weiterhin den Vorlauf und die Beschriebe der Längen —
+   Werte, die an den Videodateien selbst hängen und sich kaum ändern. Die
+   Videoliste darin dient nur noch als Ersatz. */
+function einstellungenLaden(){
+  return fetch("videos.json", { cache:"no-store" })
+    .then(a => { if (!a.ok) throw new Error(a.status); return a.json(); })
+    .catch(f => {
+      console.info("videos.json nicht geladen, Ersatzkatalog aktiv:", f.message);
+      return KATALOG_ERSATZ;
+    });
+}
+
+function videosLaden(){
+  return fetch(SUPABASE_URL + "/rest/v1/videos?select=*&order=sortierung.asc,name.asc", {
+    headers:{ apikey:SUPABASE_KEY, authorization:"Bearer " + SUPABASE_KEY },
+    cache:"no-store"
+  })
+    .then(a => { if (!a.ok) throw new Error(a.status); return a.json(); })
+    .catch(f => {
+      console.info("Katalog aus Supabase nicht geladen, videos.json aktiv:", f.message);
+      return null;
+    });
+}
+
+function katalogLaden(){
+  return Promise.all([einstellungenLaden(), videosLaden()]).then(([e, ausDb]) => {
+    uebernimm({
+      vorlaufSekunden: e.vorlaufSekunden,
+      dauern: e.dauern,
+      videos: (ausDb && ausDb.length) ? ausDb : e.videos
+    });
   });
+}
+
+katalogLaden();
 
 
 /* ==========================================================================
@@ -493,12 +649,12 @@ function oeffneInhalte(sekunden){
   passende().forEach(v => {
     const b = document.createElement("button");
     b.className = "inhalt";
-    const hell = v.bis || "#8FAE84", dunkel = v.von || "#3F5C46";
+    const hell = sicher(v.bis || "#8FAE84"), dunkel = sicher(v.von || "#3F5C46");
     b.innerHTML =
       '<span class="feld" style="background:radial-gradient(circle at 42% 36%,' +
         hell + ',' + dunkel + ' 78%)"></span>' +
-      '<span class="beschriftung"><span class="name">' + v.name + '</span>' +
-      '<span class="stimmung">' + v.stimmung + '</span></span>';
+      '<span class="beschriftung"><span class="name">' + sicher(v.name) + '</span>' +
+      '<span class="stimmung">' + sicher(v.stimmung) + '</span></span>';
     b.addEventListener("click", () => starte(v));   // synchroner Klick-Handler
     inhaltListe.appendChild(b);
   });
@@ -593,8 +749,8 @@ function starte(v){
   const versuch = video.play();
   if (versuch && versuch.catch) {
     versuch.catch(() => zeigeStoerung(
-      "Das Video konnte nicht gestartet werden.\n\n" +
-      "Lege " + v.datei + " in denselben Ordner wie index.html und lade die Seite neu."
+      "Das Video konnte nicht gestartet werden.\n\n" + v.datei +
+      "\n\nPrüfe die Internetverbindung und den Eintrag in der Verwaltung."
     ));
   }
 
@@ -717,6 +873,273 @@ function wachFreigeben(){
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && laeuft && !wachhalter) wachHalten();
+});
+
+
+/* ==========================================================================
+   11 · Verwaltung
+   Inhalte lassen sich in der App selbst pflegen. Der Code wird nicht hier,
+   sondern auf dem Server geprüft — im Browser liegt nichts, womit sich die
+   Prüfung umgehen liesse. Er bleibt nur für die Dauer der Sitzung im
+   Arbeitsspeicher und wird nirgends abgelegt.
+   ========================================================================== */
+
+const verwaltung = document.getElementById("verwaltung");
+let adminCode = null;
+
+document.getElementById("knopfVerwaltung")
+  .addEventListener("click", () => verwaltung.classList.add("an"));
+/* Beim Schliessen die Scrollposition beider Ebenen zurücksetzen: die
+   Studienansichten liegen inset:0 im Dokument und wären sonst nach dem
+   Blättern in der Verwaltung aus dem Sichtbereich geschoben. */
+document.getElementById("verwaltungZu").addEventListener("click", () => {
+  verwaltung.classList.remove("an");
+  verwaltung.scrollTop = 0;
+  window.scrollTo(0, 0);
+  zeige("s-start");
+});
+
+function melde(el, text, gut){
+  el.textContent = text;
+  el.classList.toggle("gut", !!gut);
+}
+
+function verwaltungsRuf(aktion, daten){
+  return fetch(VERWALTUNG_URL, {
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      apikey:SUPABASE_KEY,
+      authorization:"Bearer " + SUPABASE_KEY
+    },
+    body: JSON.stringify(Object.assign({ aktion, code: adminCode }, daten))
+  }).then(a =>
+    a.json().catch(() => ({ fehler:"Keine lesbare Antwort vom Server." }))
+     .then(inhalt => {
+       if (!a.ok) throw new Error(inhalt.fehler || ("Fehler " + a.status));
+       return inhalt;
+     })
+  );
+}
+
+/* ---- Anmeldung ---- */
+const vTorMeldung = document.getElementById("vTorMeldung");
+
+function anmelden(){
+  const eingabe = document.getElementById("vCode").value.trim();
+  if (!eingabe) return;
+  adminCode = eingabe;
+  melde(vTorMeldung, "Prüfe …");
+  verwaltungsRuf("pruefen", {}).then(() => {
+    melde(vTorMeldung, "");
+    document.getElementById("vCode").value = "";
+    document.getElementById("vTor").hidden = true;
+    document.getElementById("vBereich").hidden = false;
+    baueVerwaltungsliste();
+  }).catch(f => {
+    adminCode = null;
+    melde(vTorMeldung, f.message);
+  });
+}
+document.getElementById("vAnmelden").addEventListener("click", anmelden);
+document.getElementById("vCode").addEventListener("keydown", e => {
+  if (e.key === "Enter") anmelden();
+});
+
+/* ---- Vorhandene Einträge ---- */
+const vListe = document.getElementById("vListe");
+
+function feld(beschriftung, art, schluessel, wert){
+  return '<div class="v-feld"><label>' + beschriftung + '</label>' +
+    '<input type="' + art + '" data-feld="' + schluessel + '" value="' + sicher(wert) + '"></div>';
+}
+
+function baueVerwaltungsliste(){
+  vListe.innerHTML = "";
+  if (!VIDEOS.length) {
+    vListe.innerHTML = '<p class="v-hinweis">Noch keine Inhalte angelegt.</p>';
+    return;
+  }
+
+  VIDEOS.forEach(v => {
+    const karte = document.createElement("div");
+    karte.className = "v-karte";
+    karte.innerHTML =
+      '<div class="v-gitter">' +
+        feld("Name", "text", "name", v.name) +
+        feld("Kurzbeschrieb", "text", "stimmung", v.stimmung || "") +
+        feld("Länge (Min.)", "number", "minuten", minuten(v.sekunden)) +
+        feld("Reihenfolge", "number", "sortierung", v.sortierung || 0) +
+        feld("Farbe dunkel", "color", "von", v.von || "#2B5470") +
+        feld("Farbe hell", "color", "bis", v.bis || "#7FA8C0") +
+      '</div>' +
+      '<p class="v-hinweis">' + sicher(v.datei) + '</p>' +
+      '<div class="v-reihe">' +
+        '<button class="v-knopf" data-tu="speichern">Speichern</button>' +
+        '<button class="v-knopf warn" data-tu="loeschen">Löschen</button>' +
+        '<span class="v-meldung"></span>' +
+      '</div>';
+
+    const meldung = karte.querySelector(".v-meldung");
+    const knoepfe = karte.querySelectorAll("button");
+
+    function sperre(an){ knoepfe.forEach(b => { b.disabled = an; }); }
+
+    function gesammelt(){
+      const d = { id: v.id, datei: v.datei };
+      karte.querySelectorAll("[data-feld]").forEach(e => { d[e.dataset.feld] = e.value; });
+      d.sekunden = Math.round(Number(d.minuten) * 60);
+      delete d.minuten;
+      return d;
+    }
+
+    karte.querySelector('[data-tu="speichern"]').addEventListener("click", () => {
+      sperre(true);
+      melde(meldung, "Speichere …");
+      verwaltungsRuf("speichern", { video: gesammelt() })
+        .then(() => katalogLaden())
+        .then(() => { melde(meldung, "Gespeichert.", true); sperre(false); })
+        .catch(f => { melde(meldung, f.message); sperre(false); });
+    });
+
+    /* Ohne Rückfrage wäre ein Fehlgriff auf dem Telefon schnell passiert —
+       und das Video ist danach samt Datei weg. */
+    karte.querySelector('[data-tu="loeschen"]').addEventListener("click", () => {
+      if (!window.confirm('"' + v.name + '" wirklich löschen? Die Videodatei wird mit entfernt.')) return;
+      sperre(true);
+      melde(meldung, "Lösche …");
+      verwaltungsRuf("loeschen", { id: v.id })
+        .then(() => katalogLaden())
+        .then(baueVerwaltungsliste)
+        .catch(f => { melde(meldung, f.message); sperre(false); });
+    });
+
+    vListe.appendChild(karte);
+  });
+}
+
+/* ---- Neues Video ----
+   Die Datei geht direkt vom Browser in den Speicher. Der Umweg über die
+   Edge Function scheitert an deren Grössenbegrenzung; sie erteilt nur die
+   Erlaubnis. XMLHttpRequest statt fetch, weil nur so der Fortschritt
+   sichtbar wird — bei mehreren Megabyte über Mobilfunk ist das nötig. */
+
+const vDatei      = document.getElementById("vDatei");
+const vBalken     = document.getElementById("vBalken");
+const vNeuMeldung = document.getElementById("vNeuMeldung");
+const vNeuLaenge  = document.getElementById("vNeuLaenge");
+
+/* Die Länge wird nicht eingegeben, sondern aus der Datei gelesen: der
+   Vorlauf ist eingebrannt und zählt nicht zur Sitzung, wird also abgezogen.
+   Gerundet wird auf volle Minuten, denn dieser Wert ist zugleich der
+   Schlüssel, unter dem die Längenauswahl die Videos gruppiert — eine Datei
+   von 2:47 soll keine zweite Schaltfläche "2 Min." erzeugen. */
+let neueLaenge = 0;
+
+function mmss(sekunden){
+  return Math.floor(sekunden / 60) + ":" +
+         String(Math.floor(sekunden % 60)).padStart(2, "0");
+}
+
+vDatei.addEventListener("change", () => {
+  const d = vDatei.files[0];
+  neueLaenge = 0;
+  vNeuLaenge.textContent = "";
+  if (!d) return;
+
+  const name = document.getElementById("vNeuName");
+  if (!name.value) {
+    name.value = d.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+  }
+
+  const pruef = document.createElement("video");
+  pruef.preload = "metadata";
+  pruef.addEventListener("loadedmetadata", () => {
+    URL.revokeObjectURL(pruef.src);
+    const netto = pruef.duration - VORLAUF_SEK;
+    if (!(netto > 0)) {
+      vNeuLaenge.textContent = "Die Datei ist kürzer als der Vorlauf von " +
+        VORLAUF_SEK + " Sekunden.";
+      return;
+    }
+    neueLaenge = Math.max(60, Math.round(netto / 60) * 60);
+    vNeuLaenge.textContent = "Datei " + mmss(pruef.duration) + " — ergibt " +
+      minuten(neueLaenge) + " Min. Sitzung.";
+  });
+  pruef.addEventListener("error", () => {
+    vNeuLaenge.textContent = "Die Länge liess sich nicht aus der Datei lesen.";
+  });
+  pruef.src = URL.createObjectURL(d);
+});
+
+function hochladen(datei){
+  return verwaltungsRuf("uploadUrl", { dateiname: datei.name }).then(z =>
+    new Promise((fertig, scheitern) => {
+      const x = new XMLHttpRequest();
+      x.open("PUT", z.uploadUrl);
+      /* Die Erlaubnis steckt in der Signatur der Adresse; diese Kopfzeilen
+         setzt die Supabase-Bibliothek an dieser Stelle ebenfalls. */
+      x.setRequestHeader("apikey", SUPABASE_KEY);
+      x.setRequestHeader("authorization", "Bearer " + SUPABASE_KEY);
+      x.upload.addEventListener("progress", e => {
+        if (e.lengthComputable) {
+          vBalken.firstElementChild.style.width =
+            Math.round(e.loaded / e.total * 100) + "%";
+        }
+      });
+      x.onload = () => x.status < 300
+        ? fertig(z.oeffentlicheUrl)
+        : scheitern(new Error("Hochladen fehlgeschlagen (" + x.status + ")."));
+      x.onerror = () => scheitern(new Error("Hochladen fehlgeschlagen."));
+      x.send(datei);
+    })
+  );
+}
+
+document.getElementById("vAnlegen").addEventListener("click", () => {
+  const knopf = document.getElementById("vAnlegen");
+  const datei = vDatei.files[0];
+  const neu = {
+    name:       document.getElementById("vNeuName").value,
+    stimmung:   document.getElementById("vNeuStimmung").value,
+    sekunden:   neueLaenge,
+    sortierung: document.getElementById("vNeuSortierung").value,
+    von:        document.getElementById("vNeuVon").value,
+    bis:        document.getElementById("vNeuBis").value
+  };
+
+  if (!datei)             return melde(vNeuMeldung, "Bitte eine Videodatei wählen.");
+  if (!neu.name.trim())   return melde(vNeuMeldung, "Bitte einen Namen eingeben.");
+  if (!neueLaenge)        return melde(vNeuMeldung, "Die Länge der Datei ist noch nicht bekannt.");
+
+  knopf.disabled = true;
+  vBalken.classList.add("an");
+  vBalken.firstElementChild.style.width = "0%";
+  melde(vNeuMeldung, "Lade hoch …");
+
+  hochladen(datei)
+    .then(url => {
+      melde(vNeuMeldung, "Speichere …");
+      neu.datei = url;
+      return verwaltungsRuf("speichern", { video: neu });
+    })
+    .then(() => katalogLaden())
+    .then(() => {
+      baueVerwaltungsliste();
+      vDatei.value = "";
+      vNeuLaenge.textContent = "";
+      neueLaenge = 0;
+      ["vNeuName","vNeuStimmung"].forEach(
+        id => { document.getElementById(id).value = ""; });
+      vBalken.classList.remove("an");
+      melde(vNeuMeldung, "Angelegt.", true);
+      knopf.disabled = false;
+    })
+    .catch(f => {
+      vBalken.classList.remove("an");
+      melde(vNeuMeldung, f.message);
+      knopf.disabled = false;
+    });
 });
 </script>
 </body>

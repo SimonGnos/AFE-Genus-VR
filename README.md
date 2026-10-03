@@ -28,6 +28,7 @@ Anwendung und kein Nachweis therapeutischer Wirkung.
 | Statische Web-App statt native App | Kein App-Store-Prozess, sofortiger Zugriff per Link oder QR-Code, kein Installationsschritt auf dem Testgerät |
 | Cardboard-Halterung statt Standalone-Headset | Kosten von rund 20 CHF statt mehrerer hundert Franken, für eine Usability-Erhebung ausreichend |
 | Kein Framework, eine `index.html` | Kein Build-Prozess, Ablage auf beliebigem statischen Hosting-Dienst, minimale Angriffsfläche |
+| Verwaltung der Inhalte über ein Backend (Supabase) statt über Dateien | Die Studienleitung muss Videos während der Erhebung ohne Entwicklungswerkzeuge und ohne erneutes Deploy austauschen können. Der Preis ist eine externe Abhängigkeit; sie ist auf eine Tabelle, einen Objektspeicher und eine Funktion begrenzt, und die Anwendung bleibt bei deren Ausfall lauffähig |
 | Videos statt WebXR/360° | Freies Bildmaterial ist begrenzt verfügbar; für die Erhebung von Bedienbarkeit ist der Immersionsgrad nachrangig |
 | Simulierte statt frequenzverifizierte Stimulation | Der Prototyp untersucht Nutzungserleben, nicht Wirksamkeit; Frequenzgenauigkeit ist ausdrücklich nicht Gegenstand |
 
@@ -40,12 +41,13 @@ dokumentiert und bilden die Grundlage für Kapitel 4 des Arbeitsberichts.
 ```
 genus-vr/
 ├── index.html                                   ← die Anwendung (HTML/CSS/JS, ohne Abhängigkeiten)
-├── videos.json                                   ← Katalog der Inhalte (Name, Länge, Datei, Farbe)
-├── video/                                        ← Videodateien, referenziert aus videos.json
+├── videos.json                                   ← Grundeinstellungen und Rückfallkatalog
+├── video/                                        ← die ursprünglichen Videodateien
 │   ├── wald_2min.mp4
 │   ├── wiese_2min.mp4
 │   ├── meer_5min.mp4
 │   └── bergsee_5min.mp4
+├── supabase/functions/admin/index.ts              ← Edge Function: prüft den Admin-Code, schreibt den Katalog
 ├── netlify.toml                                  ← Auslieferungskonfiguration (Caching)
 ├── SPEC.md                                       ← Funktionsspezifikation für die Entwicklung
 ├── ANLEITUNG.md                                  ← Betriebsanleitung: Deployen, Inhalte pflegen
@@ -66,11 +68,24 @@ Details und Begründung stehen in [`SPEC.md`](./SPEC.md).
 
 ## Inhalte pflegen
 
-Videos können nur zentral durch den Admin angepasst werden. 
+Videos und Katalogeinträge werden ausschliesslich durch den Admin gepflegt —
+direkt in der Anwendung über den Knopf oben rechts auf dem Startbildschirm,
+abgesichert durch einen Code. Änderungen wirken sofort auf allen Geräten.
+
+Der Katalog liegt in einer Postgres-Tabelle bei Supabase, die Videodateien in
+dessen Objektspeicher (Region Zürich). Lesen darf die Anwendung direkt; jeder
+schreibende Zugriff läuft über eine Edge Function, die den Code serverseitig
+prüft. Im Browser liegt nichts, womit sich diese Prüfung umgehen liesse.
+
+Fällt Supabase aus, greift die Anwendung auf `videos.json` und danach auf einen
+eingebauten Ersatzkatalog zurück. Eine laufende Erhebung bricht dadurch nicht ab.
+
+Betriebsanleitung: [`ANLEITUNG.md`](./ANLEITUNG.md), Abschnitt 5.
 
 ## Technischer Stand
 
-- Kein Build-Schritt, keine Abhängigkeiten, reines HTML/CSS/JavaScript
+- Kein Build-Schritt, keine Abhängigkeiten im Frontend, reines HTML/CSS/JavaScript
+- Backend auf Supabase: eine Tabelle, ein Speicher-Bucket, eine Edge Function
 - Getestet auf iOS Safari (Zielplattform) sowie Chromium-Browsern im Querformat
 - Bekannte Einschränkung: Auf Displays mit weniger als 120 Hz Bildwiederholrate
   ist die 40-Hz-Stimulation nicht frequenzgenau darstellbar — für den

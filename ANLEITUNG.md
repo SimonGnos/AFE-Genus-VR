@@ -12,8 +12,8 @@ genau so aussehen:
 ```
 genus-vr/
 ├── index.html          ← die App
-├── videos.json         ← die Liste der Inhalte, hier änderst du später
-└── video/              ← Unterordner mit den Videodateien
+├── videos.json         ← Grundeinstellungen und Rückfallebene
+└── video/              ← Unterordner mit den ursprünglichen Videodateien
     ├── wald_2min.mp4
     ├── wiese_2min.mp4
     ├── meer_5min.mp4
@@ -53,7 +53,9 @@ gegen Safari gebaut.
 
 ## 4 · Eine neue Version hochladen
 
-Immer wenn du etwas geändert hast:
+Nur noch nötig, wenn sich **die App selbst** ändert — also `index.html` oder
+`videos.json`. Für Videos und Inhalte brauchst du das nicht mehr, siehe
+Abschnitt 5.
 
 1. Site in Netlify öffnen → Reiter **«Deploys»**.
 2. Den Ordner `genus-vr` erneut in das Feld unten («Drag and drop your site
@@ -66,61 +68,56 @@ gedrücktem Neuladen-Symbol neu laden, oder Safari-Verlauf leeren.
 
 ---
 
-## 5 · Ein Video austauschen
+## 5 · Inhalte in der App verwalten
 
-Wenn der neue Clip **gleich lang** ist und **gleich heissen** soll:
+**Du musst dafür nichts mehr hochladen und keine Datei bearbeiten.** Auf dem
+Startbildschirm oben rechts sitzt der Knopf **⚙**. Nach Eingabe des Admin-Codes
+kannst du dort Videos hochladen, Einträge ändern und löschen. Die Änderungen
+liegen in Supabase und sind sofort auf **allen** Geräten sichtbar — kein neues
+Deploy bei Netlify nötig.
 
-1. Neue Datei in den Ordner `video/` legen und die alte überschreiben.
-2. Ordner neu hochladen (Schritt 4).
+### Ein neues Video hinzufügen
 
-Sonst zusätzlich `videos.json` anpassen — siehe nächster Abschnitt.
+1. **⚙** antippen, Admin-Code eingeben.
+2. Unter «Neues Video» die Datei wählen. Name und Länge füllen sich von selbst.
+3. Kurzbeschrieb und Farben setzen, dann **«Hochladen und anlegen»**.
 
----
+Das Video geht direkt vom Gerät in den Speicher, ein Balken zeigt den
+Fortschritt. Über Mobilfunk dauert das bei einigen Megabyte entsprechend.
 
-## 6 · Inhalte in der App verwalten
-
-Du musst `videos.json` nicht von Hand bearbeiten. Auf dem Startbildschirm gibt es
-oben rechts den Knopf **«Inhalte»**. Dort kannst du Einträge anlegen, ändern und
-entfernen.
-
-**Die Felder je Zeile:**
+### Die Felder
 
 | Feld | Bedeutung |
 |---|---|
 | Name | Was in der App auf der Karte steht |
 | Kurzbeschrieb | Die kleine Zeile darunter |
-| Datei | Dateiname, immer beginnend mit `video/` |
-| Min. | Länge des Bildinhalts **ohne** den 30-Sekunden-Vorlauf |
-| Farbe | Farbstimmung der Karte, aus einer Auswahl |
-
-**So gehen Änderungen dauerhaft in die App:**
-
-1. Änderungen im Verwaltungsbereich vornehmen. Sie wirken sofort — du siehst das
-   Ergebnis direkt auf den Auswahlbildschirmen.
-2. **«videos.json sichern»** antippen. Die Datei wird heruntergeladen.
-3. Die heruntergeladene Datei im Ordner `genus-vr` gegen die alte austauschen.
-4. Die Videodateien in den Unterordner `video/` legen.
-5. Ordner neu hochladen (Schritt 4 dieser Anleitung).
-
-**Wichtig zu verstehen:** Solange du nicht neu hochlädst, existieren die
-Änderungen nur im Browser des Geräts, an dem du sie gemacht hast. Das erkennst du
-am orangen Hinweis **«Nur auf diesem Gerät»** oben rechts. Andere Geräte sehen
-weiterhin den alten Stand.
-
-Der Knopf **«Zurücksetzen»** verwirft die lokalen Änderungen und stellt den Stand
-aus `videos.json` wieder her.
-
-**Videodateien lassen sich nicht über die App hochladen.** Sie müssen in den
-Ordner `video/` und mit dem Ordner hochgeladen werden. Die Verwaltung pflegt nur
-die Liste, nicht die Dateien.
+| Länge (Min.) | Dauer der Sitzung, **ohne** den 30-Sekunden-Vorlauf. Bei neuen Videos aus der Datei gelesen und auf volle Minuten gerundet |
+| Reihenfolge | Position auf dem Auswahlbildschirm, niedrige Zahl zuerst |
+| Farbe dunkel / hell | Der Farbverlauf auf der Karte — Ersatz für ein Vorschaubild, dient dem schnellen Wiedererkennen |
 
 **Die Längenauswahl entsteht automatisch.** Legst du ein Video mit 10 Minuten an,
-erscheint von selbst eine dritte Option «10 Min.» — es gibt nichts weiter
-einzustellen.
+erscheint von selbst eine dritte Option «10 Min.».
+
+**Löschen entfernt auch die Videodatei.** Deshalb die Rückfrage.
+
+### Wenn du den Admin-Code ändern willst
+
+Im Supabase-Dashboard unter **Edge Functions → Secrets** den Wert von
+`ADMIN_CODE` ersetzen. Die Änderung wirkt sofort, die App muss nicht angefasst
+werden.
+
+### Was noch über Netlify läuft
+
+Die vier ursprünglichen Videos liegen weiterhin im Ordner `video/` auf Netlify
+und funktionieren unverändert. Nur neu hochgeladene Videos liegen in Supabase.
+Auch `videos.json` bleibt: die Datei liefert den Vorlauf und die Beschriebe der
+Längen und dient als Rückfallebene, falls Supabase einmal nicht erreichbar ist.
+Dann zeigt die App den Stand aus dieser Datei — eine laufende Erhebung bricht
+also nicht ab.
 
 ---
 
-## 7 · Der 30-Sekunden-Vorlauf
+## 6 · Der 30-Sekunden-Vorlauf
 
 **Jedes Video muss den Vorlauf bereits enthalten** — 30 Sekunden schwarzes Bild
 mit Countdown, in denen das Handy eingelegt und die Brille aufgesetzt wird. Ein
@@ -153,7 +150,7 @@ ffmpeg -i original.mp4 -vf scale=1280:720 -r 30 -c:v libx264 -crf 26 \
 
 ---
 
-## 8 · Auswahlkriterien für neue Inhalte
+## 7 · Auswahlkriterien für neue Inhalte
 
 Aus dem Anforderungskatalog (DE-11, DE-12) — bei der Materialauswahl beachten:
 
@@ -169,11 +166,14 @@ brauchst du für den Bericht.
 
 ---
 
-## 9 · Wenn etwas nicht funktioniert
+## 8 · Wenn etwas nicht funktioniert
 
 | Beobachtung | Ursache und Abhilfe |
 |---|---|
-| «Keine Inhalte gefunden» | `videos.json` enthält einen Tippfehler. Prüfe Kommas und Anführungszeichen, etwa auf `jsonlint.com`. |
+| «Keine Inhalte gefunden» | Weder Supabase noch `videos.json` lieferten etwas. Internetverbindung prüfen; sonst `videos.json` auf Tippfehler, etwa auf `jsonlint.com`. |
+| «Falscher Code.» | Der Code stimmt nicht mit `ADMIN_CODE` in den Supabase-Secrets überein. |
+| Änderung auf anderem Gerät nicht sichtbar | Seite dort neu laden. Der Katalog wird beim Start geladen, nicht laufend. |
+| Hochladen bricht ab | Verbindung instabil. Im WLAN wiederholen — über Mobilfunk sind einige Megabyte anfällig. |
 | Schwarzes Bild statt Video | Der Pfad in `datei` stimmt nicht mit dem echten Dateinamen überein. Gross- und Kleinschreibung ist entscheidend. |
 | Kein Ton | Kopfhörer vor dem Einlegen koppeln. Der Stummschalter am iPhone betrifft die Videowiedergabe nicht, die Lautstärkewippe aber schon. |
 | Bildschirm wird dunkel | Auto-Sperre am Gerät verlängern oder deaktivieren. |
