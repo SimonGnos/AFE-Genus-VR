@@ -47,6 +47,7 @@ genus-vr/
 │   ├── wiese_2min.mp4
 │   ├── meer_5min.mp4
 │   └── bergsee_5min.mp4
+├── supabase/schema.sql                            ← Tabelle, Zugriffsregeln, Ausgangsbestand
 ├── supabase/functions/admin/index.ts              ← Edge Function: prüft den Admin-Code, schreibt den Katalog
 ├── netlify.toml                                  ← Auslieferungskonfiguration (Caching)
 ├── SPEC.md                                       ← Funktionsspezifikation für die Entwicklung
@@ -81,6 +82,9 @@ Fällt Supabase aus, greift die Anwendung auf `videos.json` und danach auf einen
 eingebauten Ersatzkatalog zurück. Eine laufende Erhebung bricht dadurch nicht ab.
 
 Betriebsanleitung: [`ANLEITUNG.md`](./ANLEITUNG.md), Abschnitt 5.
+Der Aufbau der Datenbank ist in [`supabase/schema.sql`](./supabase/schema.sql)
+vollständig festgehalten, einschliesslich der drei Schritte, die sich nur im
+Supabase-Dashboard erledigen lassen.
 
 ## Technischer Stand
 
