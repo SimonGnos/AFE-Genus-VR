@@ -505,13 +505,16 @@ let VORLAUF_SEK = 30;
    >>> Nur am Gerät durch die Linsen empirisch zu ermitteln. <<< */
 const AUGENABSTAND = 0.00;
 
-/* Stimulations-Overlay (DE-26, DE-27). Feste, illustrativ gewählte Werte.
-   Die Stimulation läuft permanent und ist nicht abschaltbar.
+/* Stimulations-Overlay (DE-26, DE-27). Die Stimulation läuft permanent und
+   ist nicht abschaltbar.
+   Rechteckschwingung mit 10 % Modulationstiefe, übernommen aus der
+   Aufbereitung des Quellmaterials: dort wird jedes zweite Bild bei 80 fps
+   auf 90 % abgedunkelt, was 40 Hz ergibt.
    Auf einem 60-Hz-Display ist eine 40-Hz-Schwankung nicht frequenzgetreu
    darstellbar; der sichtbare Eindruck ist eine Näherung (DE-03, DE-07). */
-const FLICKER_HZ        = 40;
-const FLICKER_MAX_ALPHA = 0.20;
-const FLICKER_FLAECHE   = 1.00;
+const FLICKER_HZ      = 40;
+const FLICKER_TIEFE   = 0.10;   /* Abdunklung der dunklen Halbwelle: 0.10 = 90 % Helligkeit */
+const FLICKER_FLAECHE = 1.00;
 
 /* Berührung wirkt erst nach dem Vorlauf plus dieser Karenz (DE-17). */
 const TIPP_KARENZ_SEK = 2;
@@ -791,10 +794,14 @@ function zeichne(){
      soll lesbar bleiben und die Stimulation erst einsetzen, wenn die Brille
      sitzt (DE-32). */
   if (t >= VORLAUF_SEK) {
-    const welle = (Math.sin(t * 2 * Math.PI * FLICKER_HZ) + 1) / 2;
-    ctx.fillStyle = "rgba(255,255,255," + (welle * FLICKER_MAX_ALPHA).toFixed(4) + ")";
-    const fh = h * FLICKER_FLAECHE;
-    ctx.fillRect(0, (h - fh) / 2, b, fh);
+    /* Rechteckschwingung, nicht Sinus: die eine Halbwelle bleibt unverändert,
+       die andere wird abgedunkelt. Entspricht der Taktung der GENUS-Literatur
+       (hart geschaltetes Licht) und der Aufbereitung des Quellmaterials. */
+    if (Math.floor(t * FLICKER_HZ * 2) % 2) {
+      ctx.fillStyle = "rgba(0,0,0," + FLICKER_TIEFE + ")";
+      const fh = h * FLICKER_FLAECHE;
+      ctx.fillRect(0, (h - fh) / 2, b, fh);
+    }
     zeichneTimer(Math.max(0, aktiv.sekunden - (t - VORLAUF_SEK)), b, h);
   }
 
