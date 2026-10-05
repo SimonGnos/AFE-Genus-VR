@@ -79,8 +79,11 @@ Deploy bei Netlify nötig.
 ### Ein neues Video hinzufügen
 
 1. **⚙** antippen, Admin-Code eingeben.
-2. Unter «Neues Video» die Datei wählen. Name und Länge füllen sich von selbst.
-3. Kurzbeschrieb und Farben setzen, dann **«Hochladen und anlegen»**.
+2. Unter «Neues Video» die Datei wählen. Der Name füllt sich von selbst.
+3. **Vorlauf in Sekunden eintragen** — wie lang der eingebrannte Countdown am
+   Anfang dieser Datei ist. Daraus rechnet die App die Sitzungsdauer aus und
+   zeigt sie an, etwa «Datei 5:10 − 10 s Vorlauf → 5 Min. Sitzung».
+4. Kurzbeschrieb und Farben setzen, dann **«Hochladen und anlegen»**.
 
 Das Video geht direkt vom Gerät in den Speicher, ein Balken zeigt den
 Fortschritt. Über Mobilfunk dauert das bei einigen Megabyte entsprechend.
@@ -91,7 +94,8 @@ Fortschritt. Über Mobilfunk dauert das bei einigen Megabyte entsprechend.
 |---|---|
 | Name | Was in der App auf der Karte steht |
 | Kurzbeschrieb | Die kleine Zeile darunter |
-| Länge (Min.) | Dauer der Sitzung, **ohne** den 30-Sekunden-Vorlauf. Bei neuen Videos aus der Datei gelesen und auf volle Minuten gerundet |
+| Länge (Min.) | Dauer der Sitzung, **ohne** den Vorlauf. Bei neuen Videos aus der Dateilänge abzüglich Vorlauf gerechnet und auf volle Minuten gerundet |
+| Vorlauf (Sek.) | Länge des eingebrannten Countdowns dieser Datei. Erst danach setzen Stimulation und Timer ein. Unterschiedliches Material hat unterschiedlichen Vorlauf — der Wert gehört deshalb zum Video, nicht zur App |
 | Reihenfolge | Position auf dem Auswahlbildschirm, niedrige Zahl zuerst |
 | Farbe dunkel / hell | Der Farbverlauf auf der Karte — Ersatz für ein Vorschaubild, dient dem schnellen Wiedererkennen |
 

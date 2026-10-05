@@ -98,11 +98,15 @@ Deno.serve(async (req) => {
     /* ---- Eintrag anlegen oder ändern ---- */
     case "speichern": {
       const v = anfrage.video ?? {};
+      /* Der Vorlauf ist je Datei verschieden und steckt im Material. Fehlt
+         die Angabe, gilt der bisherige Standardwert. */
+      const vorlauf = Number(v.vorlauf);
       const zeile = {
         name: String(v.name ?? "").trim().slice(0, 80),
         stimmung: String(v.stimmung ?? "").trim().slice(0, 120),
         datei: String(v.datei ?? "").trim().slice(0, 500),
         sekunden: Math.round(Number(v.sekunden)),
+        vorlauf: Number.isFinite(vorlauf) && vorlauf >= 0 ? Math.round(vorlauf) : 30,
         von: String(v.von ?? "#2B5470").slice(0, 9),
         bis: String(v.bis ?? "#7FA8C0").slice(0, 9),
         sortierung: Math.round(Number(v.sortierung)) || 0,

@@ -21,7 +21,8 @@ create table public.videos (
   name        text    not null,
   stimmung    text    not null default '',
   datei       text    not null,   -- Pfad auf Netlify oder volle Supabase-URL
-  sekunden    integer not null,   -- Sitzungsdauer OHNE den 30-s-Vorlauf
+  sekunden    integer not null,   -- Sitzungsdauer OHNE den Vorlauf
+  vorlauf     integer not null default 30,  -- eingebrannter Vorlauf dieser Datei
   von         text    not null default '#2B5470',
   bis         text    not null default '#7FA8C0',
   sortierung  integer not null default 0,
@@ -73,8 +74,19 @@ create policy "upload nur mit signatur"
 -- Pfade sind relativ. Später über die App hochgeladene Videos tragen hier
 -- eine vollständige Supabase-URL.
 -- ---------------------------------------------------------------------------
-insert into public.videos (name, stimmung, datei, sekunden, von, bis, sortierung) values
-  ('Wald',    'Licht zwischen Blättern', 'video/wald_2min.mp4',    120, '#3E6B4A', '#9CBE84', 1),
-  ('Wiese',   'Gräser im Sommerwind',    'video/wiese_2min.mp4',   120, '#5A6B34', '#D4CE96', 2),
-  ('Meer',    'Ruhige Dünung',           'video/meer_5min.mp4',    300, '#2B5470', '#7FA8C0', 3),
-  ('Bergsee', 'Stilles Wasser',          'video/bergsee_5min.mp4', 300, '#1F3F44', '#8FB5B2', 4);
+insert into public.videos (name, stimmung, datei, sekunden, vorlauf, von, bis, sortierung) values
+  ('Wald',    'Licht zwischen Blättern', 'video/wald_2min.mp4',    120, 30, '#3E6B4A', '#9CBE84', 1),
+  ('Wiese',   'Gräser im Sommerwind',    'video/wiese_2min.mp4',   120, 30, '#5A6B34', '#D4CE96', 2),
+  ('Meer',    'Ruhige Dünung',           'video/meer_5min.mp4',    300, 30, '#2B5470', '#7FA8C0', 3),
+  ('Bergsee', 'Stilles Wasser',          'video/bergsee_5min.mp4', 300, 30, '#1F3F44', '#8FB5B2', 4);
+
+
+-- ---------------------------------------------------------------------------
+-- Nachträgliche Änderungen
+--
+-- Gegenüber dem ersten Aufbau hinzugekommen, hier zum Nachvollziehen. Bei
+-- einem Neuaufbau nach obigem Stand sind sie bereits enthalten.
+-- ---------------------------------------------------------------------------
+-- 2026-10-05 · Vorlauf je Video statt global, da neues Material mit
+--              10 Sekunden Vorlauf hinzukam:
+-- alter table public.videos add column vorlauf integer not null default 30;

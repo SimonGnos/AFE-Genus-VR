@@ -427,6 +427,8 @@ video{display:none;}
         </div>
         <p class="v-hinweis" id="vNeuLaenge"></p>
         <div class="v-gitter">
+          <div class="v-feld"><label for="vNeuVorlauf">Vorlauf (Sek.)</label>
+            <input id="vNeuVorlauf" type="number" min="0" step="1" value="30"></div>
           <div class="v-feld"><label for="vNeuName">Name</label>
             <input id="vNeuName" type="text" placeholder="Bergbach"></div>
           <div class="v-feld"><label for="vNeuStimmung">Kurzbeschrieb</label>
@@ -496,9 +498,16 @@ let VIDEOS = [];
 let DAUERN = [];
 
 /* Vorlauf: schwarzes Bild mit Countdown, in die Videodateien eingebrannt
-   (DE-32). Wird hier nicht erzeugt, nur berücksichtigt. Der Wert kommt aus
-   videos.json. */
+   (DE-32). Wird hier nicht erzeugt, nur berücksichtigt.
+   Die Länge gehört zum einzelnen Video, weil sie im Material steckt und je
+   nach Herkunft abweicht. Dieser Wert gilt nur, wo das Video selbst nichts
+   angibt. */
 let VORLAUF_SEK = 30;
+
+function vorlaufVon(v){
+  const w = Number(v && v.vorlauf);
+  return Number.isFinite(w) && w >= 0 ? w : VORLAUF_SEK;
+}
 
 /* Augenabstand. Verschiebt beide Bildhälften zur Mitte (positiv) oder nach
    aussen (negativ), in Anteilen der halben Bildschirmbreite.
@@ -532,6 +541,7 @@ const stoerung = document.getElementById("stoerung");
 
 let laeuft = false, schleife = null, wachhalter = null;
 let aktiv = null, gewaehlteDauer = null;
+let aktivVorlauf = 30;   /* Vorlauf des laufenden Videos, in Sekunden */
 
 
 /* ==========================================================================
@@ -744,6 +754,7 @@ document.getElementById("blattZu").addEventListener("click", schliesseBlatt);
 function starte(v){
   if (laeuft) return;
   aktiv = v;
+  aktivVorlauf = vorlaufVon(v);
 
   video.src = v.datei;
   video.currentTime = 0;
@@ -793,7 +804,7 @@ function zeichne(){
   /* Overlay und Timer erst nach dem Vorlauf — der eingebrannte Countdown
      soll lesbar bleiben und die Stimulation erst einsetzen, wenn die Brille
      sitzt (DE-32). */
-  if (t >= VORLAUF_SEK) {
+  if (t >= aktivVorlauf) {
     /* Rechteckschwingung, nicht Sinus: die eine Halbwelle bleibt unverändert,
        die andere wird abgedunkelt. Entspricht der Taktung der GENUS-Literatur
        (hart geschaltetes Licht) und der Aufbereitung des Quellmaterials. */
@@ -802,7 +813,7 @@ function zeichne(){
       const fh = h * FLICKER_FLAECHE;
       ctx.fillRect(0, (h - fh) / 2, b, fh);
     }
-    zeichneTimer(Math.max(0, aktiv.sekunden - (t - VORLAUF_SEK)), b, h);
+    zeichneTimer(Math.max(0, aktiv.sekunden - (t - aktivVorlauf)), b, h);
   }
 
   schleife = requestAnimationFrame(zeichne);
@@ -840,7 +851,7 @@ function beende(){
 
 video.addEventListener("ended", beende);
 sitzung.addEventListener("click", () => {
-  if (laeuft && video.currentTime >= VORLAUF_SEK + TIPP_KARENZ_SEK) beende();
+  if (laeuft && video.currentTime >= aktivVorlauf + TIPP_KARENZ_SEK) beende();
 });
 stoerung.addEventListener("click", beende);
 
@@ -977,6 +988,7 @@ function baueVerwaltungsliste(){
         feld("Name", "text", "name", v.name) +
         feld("Kurzbeschrieb", "text", "stimmung", v.stimmung || "") +
         feld("Länge (Min.)", "number", "minuten", minuten(v.sekunden)) +
+        feld("Vorlauf (Sek.)", "number", "vorlauf", vorlaufVon(v)) +
         feld("Reihenfolge", "number", "sortierung", v.sortierung || 0) +
         feld("Farbe dunkel", "color", "von", v.von || "#2B5470") +
         feld("Farbe hell", "color", "bis", v.bis || "#7FA8C0") +
@@ -1037,11 +1049,12 @@ const vBalken     = document.getElementById("vBalken");
 const vNeuMeldung = document.getElementById("vNeuMeldung");
 const vNeuLaenge  = document.getElementById("vNeuLaenge");
 
-/* Die Länge wird nicht eingegeben, sondern aus der Datei gelesen: der
-   Vorlauf ist eingebrannt und zählt nicht zur Sitzung, wird also abgezogen.
-   Gerundet wird auf volle Minuten, denn dieser Wert ist zugleich der
-   Schlüssel, unter dem die Längenauswahl die Videos gruppiert — eine Datei
-   von 2:47 soll keine zweite Schaltfläche "2 Min." erzeugen. */
+/* Die Sitzungsdauer wird nicht eingegeben, sondern gerechnet: Länge der
+   Datei abzüglich des Vorlaufs, den der Admin angibt. Gerundet wird auf
+   volle Minuten, denn dieser Wert ist zugleich der Schlüssel, unter dem die
+   Längenauswahl die Videos gruppiert — eine Datei von 2:47 soll keine
+   zweite Schaltfläche "2 Min." erzeugen. */
+let dateiDauer = 0;
 let neueLaenge = 0;
 
 function mmss(sekunden){
@@ -1049,10 +1062,32 @@ function mmss(sekunden){
          String(Math.floor(sekunden % 60)).padStart(2, "0");
 }
 
+function laengeBerechnen(){
+  const vorlauf = Number(document.getElementById("vNeuVorlauf").value);
+  neueLaenge = 0;
+
+  if (!dateiDauer) { vNeuLaenge.textContent = ""; return; }
+  if (!Number.isFinite(vorlauf) || vorlauf < 0) {
+    vNeuLaenge.textContent = "Bitte den Vorlauf in Sekunden angeben.";
+    return;
+  }
+
+  const netto = dateiDauer - vorlauf;
+  if (!(netto > 0)) {
+    vNeuLaenge.textContent = "Die Datei (" + mmss(dateiDauer) +
+      ") ist nicht länger als der Vorlauf.";
+    return;
+  }
+
+  neueLaenge = Math.max(60, Math.round(netto / 60) * 60);
+  vNeuLaenge.textContent = "Datei " + mmss(dateiDauer) + " − " + vorlauf +
+    " s Vorlauf → " + minuten(neueLaenge) + " Min. Sitzung.";
+}
+
 vDatei.addEventListener("change", () => {
   const d = vDatei.files[0];
-  neueLaenge = 0;
-  vNeuLaenge.textContent = "";
+  dateiDauer = 0;
+  laengeBerechnen();
   if (!d) return;
 
   const name = document.getElementById("vNeuName");
@@ -1064,21 +1099,16 @@ vDatei.addEventListener("change", () => {
   pruef.preload = "metadata";
   pruef.addEventListener("loadedmetadata", () => {
     URL.revokeObjectURL(pruef.src);
-    const netto = pruef.duration - VORLAUF_SEK;
-    if (!(netto > 0)) {
-      vNeuLaenge.textContent = "Die Datei ist kürzer als der Vorlauf von " +
-        VORLAUF_SEK + " Sekunden.";
-      return;
-    }
-    neueLaenge = Math.max(60, Math.round(netto / 60) * 60);
-    vNeuLaenge.textContent = "Datei " + mmss(pruef.duration) + " — ergibt " +
-      minuten(neueLaenge) + " Min. Sitzung.";
+    dateiDauer = pruef.duration;
+    laengeBerechnen();
   });
   pruef.addEventListener("error", () => {
     vNeuLaenge.textContent = "Die Länge liess sich nicht aus der Datei lesen.";
   });
   pruef.src = URL.createObjectURL(d);
 });
+
+document.getElementById("vNeuVorlauf").addEventListener("input", laengeBerechnen);
 
 function hochladen(datei){
   return verwaltungsRuf("uploadUrl", { dateiname: datei.name }).then(z =>
@@ -1117,6 +1147,7 @@ document.getElementById("vAnlegen").addEventListener("click", () => {
     name:       document.getElementById("vNeuName").value,
     stimmung:   document.getElementById("vNeuStimmung").value,
     sekunden:   neueLaenge,
+    vorlauf:    document.getElementById("vNeuVorlauf").value,
     sortierung: document.getElementById("vNeuSortierung").value,
     von:        document.getElementById("vNeuVon").value,
     bis:        document.getElementById("vNeuBis").value
@@ -1143,6 +1174,7 @@ document.getElementById("vAnlegen").addEventListener("click", () => {
       vDatei.value = "";
       vNeuLaenge.textContent = "";
       neueLaenge = 0;
+      dateiDauer = 0;
       ["vNeuName","vNeuStimmung"].forEach(
         id => { document.getElementById(id).value = ""; });
       vBalken.classList.remove("an");
