@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>GENUS-VR Kalibrierung</title>
+<style>
+/* ==========================================================================
+   Werkzeug, nicht Teil der Anwendung.
+
+   Zweck: Augenabstand und Bildausschnitt am Gerät durch die Linsen
+   einstellen. Beide Werte lassen sich nicht berechnen — sie hängen an der
+   Halterung, am Bildschirm und an der Person. Die gefundenen Zahlen werden
+   anschliessend in index.html eingetragen.
+
+   Bedienung: Werte setzen, "Ansehen" tippen, Gerät einlegen, durchschauen,
+   herausnehmen, nachjustieren. Der eingestellte Wert steht in der Ansicht
+   gross geschrieben, damit nach dem Herausnehmen klar ist, wo man war.
+   ========================================================================== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  background:#14130F;color:#EDEFEA;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 30px);
+}
+h1{font-size:18px;font-weight:720;margin-bottom:5px;}
+p.hinweis{font-size:13px;color:#9AA096;margin-bottom:16px;}
+.block{background:#1E1D18;border-radius:12px;padding:14px;margin-bottom:12px;}
+.block h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8D938A;font-weight:700;margin-bottom:10px;}
+.wert{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.wert b{font-family:ui-monospace,Menlo,monospace;font-size:19px;color:#A8D49A;min-width:76px;text-align:center;}
+.wert button{
+  width:46px;height:46px;border-radius:10px;border:none;background:#2C3A2E;color:#EDEFEA;
+  font-size:22px;font-weight:700;flex:0 0 auto;
+}
+input[type=range]{width:100%;}
+.reihe{display:flex;gap:8px;flex-wrap:wrap;}
+.reihe button{
+  flex:1 1 auto;font:inherit;font-size:14px;font-weight:650;padding:12px;
+  border:none;border-radius:10px;background:#2C3A2E;color:#EDEFEA;
+}
+.reihe button.an{background:#5C8A5E;}
+#ansehen{background:#5C8A5E;font-size:16px;padding:16px;width:100%;margin-top:4px;}
+.erklaerung{font-size:12.5px;color:#8D938A;line-height:1.5;margin-top:9px;}
+.ergebnis{
+  background:#1E1D18;border-radius:12px;padding:14px;margin-top:16px;
+  font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.7;
+  white-space:pre;overflow-x:auto;color:#C9CFC4;
+}
+
+/* Vollbildansicht — dieselbe Geometrie wie die Sitzung in der Anwendung */
+#buehne{position:fixed;inset:0;z-index:10;display:none;background:#000;}
+#buehne.an{display:block;}
+#buehne canvas{display:block;width:100%;height:100%;}
+video{display:none;}
+</style>
+</head>
+<body>
+
+<h1>Kalibrierung</h1>
+<p class="hinweis">Stelle zuerst die beiden Rädchen an der Brille ein —
+Augenabstand und Schärfe. Erst danach hier justieren.</p>
+
+<div class="block">
+  <h2>Augenabstand</h2>
+  <div class="wert">
+    <button data-schritt="-0.005" data-ziel="abstand">−</button>
+    <b id="abstandWert">0.000</b>
+    <button data-schritt="0.005" data-ziel="abstand">+</button>
+  </div>
+  <input type="range" id="abstand" min="-0.12" max="0.12" step="0.005" value="0">
+  <p class="erklaerung">Verschiebt beide Bildhälften zur Mitte (positiv) oder nach
+  aussen (negativ). Richtig ist der Wert, bei dem die zwei Bilder mühelos zu einem
+  verschmelzen — ohne dass die Augen ziehen.</p>
+</div>
+
+<div class="block">
+  <h2>Bildausschnitt</h2>
+  <div class="reihe">
+    <button id="modusEinpassen" class="an">Einpassen</button>
+    <button id="modusFuellen">Füllen</button>
+  </div>
+  <p class="erklaerung">«Einpassen» zeigt das ganze Bild mit schwarzen Balken — so
+  arbeitet die Anwendung heute. «Füllen» nutzt die Fläche ganz aus und beschneidet
+  dafür seitlich. Wirkt weiter, kostet Bildrand.</p>
+</div>
+
+<div class="block">
+  <h2>Was anzeigen</h2>
+  <div class="reihe">
+    <button id="inhaltMuster" class="an">Muster</button>
+    <button id="inhaltVideo">Video</button>
+  </div>
+  <p class="erklaerung">Für den Augenabstand ist das Muster geeigneter: Die beiden
+  Kreise müssen zu einem einzigen verschmelzen. Mit Video beurteilst du den
+  Bildausschnitt.</p>
+</div>
+
+<button id="ansehen">Ansehen</button>
+<p class="erklaerung">Gerät einlegen, durchschauen. Antippen beendet die Ansicht.</p>
+
+<div class="ergebnis" id="ergebnis"></div>
+
+<div id="buehne"><canvas id="leinwand"></canvas></div>
+<video id="quelle" playsinline webkit-playsinline preload="auto" muted loop></video>
+
+<script>
+"use strict";
+
+const video    = document.getElementById("quelle");
+const buehne   = document.getElementById("buehne");
+const leinwand = document.getElementById("leinwand");
+const ctx      = leinwand.getContext("2d");
+
+let fuellen = false;     /* false = einpassen, wie die Anwendung heute */
+let zeigeVideo = false;  /* false = geometrisches Muster */
+let laeuft = false, schleife = null;
+
+/* Ein Video aus dem Katalog holen, damit der Bildausschnitt am echten
+   Material beurteilt wird. Schlägt das fehl, bleibt das Muster. */
+const SUPABASE_URL = "https://rkwuolqdawkvqlqxzddt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Lll7SLn3F22x4DAJibsUkA_NGnz1G_1";
+
+fetch(SUPABASE_URL + "/rest/v1/videos?select=datei&limit=1", {
+  headers:{ apikey:SUPABASE_KEY, authorization:"Bearer " + SUPABASE_KEY }
+})
+  .then(a => a.json())
+  .then(z => { if (z && z[0]) video.src = z[0].datei; })
+  .catch(() => {});
+
+function abstand(){ return Number(document.getElementById("abstand").value); }
+
+function schreibeWerte(){
+  document.getElementById("abstandWert").textContent = abstand().toFixed(3);
+  document.getElementById("ergebnis").textContent =
+    "Fuer index.html:\n\n" +
+    "const AUGENABSTAND = " + abstand().toFixed(3) + ";\n\n" +
+    "Bildausschnitt: " + (fuellen ? "fuellen (Math.max)" : "einpassen (Math.min)");
+}
+
+/* Muster zum Verschmelzen: konzentrische Kreise mit Fadenkreuz. Zwei
+   gleiche Muster, die bei richtigem Abstand als eines erscheinen. Die
+   Ziffern aussen zeigen, ob der Rand noch scharf ist. */
+function zeichneMuster(x, y, bb, hh){
+  const mx = x + bb / 2, my = y + hh / 2, r = Math.min(bb, hh) * 0.42;
+
+  ctx.strokeStyle = "#8FB58A";
+  ctx.lineWidth = Math.max(2, r * 0.012);
+  [0.3, 0.6, 1].forEach(f => {
+    ctx.beginPath(); ctx.arc(mx, my, r * f, 0, Math.PI * 2); ctx.stroke();
+  });
+
+  ctx.beginPath();
+  ctx.moveTo(mx - r, my); ctx.lineTo(mx + r, my);
+  ctx.moveTo(mx, my - r); ctx.lineTo(mx, my + r);
+  ctx.stroke();
+
+  ctx.fillStyle = "#EDEFEA";
+  ctx.beginPath(); ctx.arc(mx, my, r * 0.045, 0, Math.PI * 2); ctx.fill();
+
+  ctx.font = "600 " + Math.round(r * 0.13) + "px -apple-system, system-ui, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = "#6E7570";
+  [["8", mx, my - r * 0.78], ["8", mx, my + r * 0.78],
+   ["8", mx - r * 0.78, my], ["8", mx + r * 0.78, my]].forEach(p =>
+    ctx.fillText(p[0], p[1], p[2]));
+}
+
+function zeichne(){
+  if (!laeuft) return;
+
+  const b = leinwand.width, h = leinwand.height, halbe = b / 2;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, b, h);
+
+  const versatz = abstand() * halbe;
+
+  if (zeigeVideo && video.videoWidth) {
+    /* Dieselbe Rechnung wie in der Anwendung — nur die Wahl zwischen
+       einpassen und füllen kommt hinzu. */
+    const passe = Math.min(halbe / video.videoWidth, h / video.videoHeight);
+    const fuelle = Math.max(halbe / video.videoWidth, h / video.videoHeight);
+    const m = fuellen ? fuelle : passe;
+    const zb = video.videoWidth * m, zh = video.videoHeight * m;
+    const y = (h - zh) / 2;
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, halbe, h); ctx.clip();
+    ctx.drawImage(video, (halbe - zb) / 2 + versatz, y, zb, zh);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(halbe, 0, halbe, h); ctx.clip();
+    ctx.drawImage(video, halbe + (halbe - zb) / 2 - versatz, y, zb, zh);
+    ctx.restore();
+  } else {
+    zeichneMuster(versatz, 0, halbe, h);
+    zeichneMuster(halbe - versatz, 0, halbe, h);
+  }
+
+  /* Der eingestellte Wert, in beiden Hälften lesbar — nach dem Herausnehmen
+     weiss man sonst nicht mehr, wo man stand. */
+  ctx.font = "600 " + Math.round(h * 0.035) + "px ui-monospace, Menlo, monospace";
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "rgba(255,255,255,0.40)";
+  const text = abstand().toFixed(3) + (fuellen ? "  fuellen" : "  einpassen");
+  ctx.fillText(text, b * 0.25, h - Math.round(h * 0.045));
+  ctx.fillText(text, b * 0.75, h - Math.round(h * 0.045));
+
+  schleife = requestAnimationFrame(zeichne);
+}
+
+function groesse(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  leinwand.width  = Math.round(window.innerWidth  * dpr);
+  leinwand.height = Math.round(window.innerHeight * dpr);
+}
+
+document.getElementById("ansehen").addEventListener("click", () => {
+  buehne.classList.add("an");
+  groesse();
+  if (zeigeVideo && video.src) video.play().catch(() => {});
+  laeuft = true;
+  schleife = requestAnimationFrame(zeichne);
+});
+
+buehne.addEventListener("click", () => {
+  laeuft = false;
+  cancelAnimationFrame(schleife);
+  video.pause();
+  buehne.classList.remove("an");
+});
+
+window.addEventListener("resize", () => { if (laeuft) groesse(); });
+
+document.getElementById("abstand").addEventListener("input", schreibeWerte);
+
+document.querySelectorAll("[data-schritt]").forEach(b =>
+  b.addEventListener("click", () => {
+    const r = document.getElementById(b.dataset.ziel);
+    r.value = (Number(r.value) + Number(b.dataset.schritt)).toFixed(3);
+    schreibeWerte();
+  }));
+
+function umschalten(anId, ausId, setzen){
+  document.getElementById(anId).addEventListener("click", () => {
+    setzen(true);
+    document.getElementById(anId).classList.add("an");
+    document.getElementById(ausId).classList.remove("an");
+    schreibeWerte();
+  });
+}
+umschalten("modusFuellen",   "modusEinpassen", () => { fuellen = true;  });
+umschalten("modusEinpassen", "modusFuellen",   () => { fuellen = false; });
+umschalten("inhaltVideo",    "inhaltMuster",   () => { zeigeVideo = true;  });
+umschalten("inhaltMuster",   "inhaltVideo",    () => { zeigeVideo = false; });
+
+schreibeWerte();
+</script>
+</body>
+</html>
