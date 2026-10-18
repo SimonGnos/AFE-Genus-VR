@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GENUS-VR Flimmertest</title>
+<style>
+/* ==========================================================================
+   Werkzeug, nicht Teil der Anwendung. Dient dazu, Frequenz, Tiefe und
+   Wellenform am echten Gerät durch die Linsen zu beurteilen, statt sie zu
+   erraten und für jeden Versuch neu zu deployen.
+   ========================================================================== */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#14130F;color:#EDEFEA;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+}
+h1{font-size:17px;font-weight:700;margin:14px 0 4px;}
+p.hinweis{font-size:13px;color:#9AA096;margin-bottom:12px;line-height:1.5;}
+canvas{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block;}
+.regler{margin-top:14px;}
+.regler label{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:5px;}
+.regler label b{font-variant-numeric:tabular-nums;color:#A8D49A;}
+input[type=range]{width:100%;}
+.reihe{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+button{
+  font:inherit;font-size:14px;font-weight:650;padding:11px 15px;border:none;border-radius:9px;
+  background:#2C3A2E;color:#EDEFEA;flex:1 1 auto;
+}
+button.an{background:#5C8A5E;}
+.werte{
+  margin-top:16px;padding:12px;border-radius:9px;background:#1E1D18;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.6;
+  white-space:pre;overflow-x:auto;color:#C9CFC4;
+}
+video{display:none;}
+</style>
+</head>
+<body>
+
+<h1>Flimmertest</h1>
+<p class="hinweis">Stelle ein, bis der Eindruck stimmt. Lege das Gerät dafür in die
+Brille — durch die Linsen sieht es anders aus als in der Hand. Die Werte unten
+überträgst du anschliessend in die Anwendung.</p>
+
+<canvas id="buehne" width="960" height="540"></canvas>
+
+<div class="reihe">
+  <button id="start">Abspielen</button>
+  <button id="form">Rechteck</button>
+  <button id="takt">Zeit: Videozeit</button>
+</div>
+
+<div class="regler">
+  <label for="hz">Frequenz <b><span id="hzWert">40</span> Hz</b></label>
+  <input type="range" id="hz" min="2" max="60" step="1" value="40">
+</div>
+
+<div class="regler">
+  <label for="tiefe">Tiefe <b><span id="tiefeWert">0.10</span></b></label>
+  <input type="range" id="tiefe" min="0" max="0.6" step="0.01" value="0.10">
+</div>
+
+<div class="werte" id="werte"></div>
+
+<video id="quelle" playsinline webkit-playsinline preload="auto" src="video/meer_5min.mp4"></video>
+
+<script>
+"use strict";
+
+const video  = document.getElementById("quelle");
+const buehne = document.getElementById("buehne");
+const ctx    = buehne.getContext("2d");
+const werte  = document.getElementById("werte");
+
+let rechteck = true;     /* false = Sinus, wie die Anwendung vor der Änderung */
+let videozeit = true;    /* false = Taktgeber des Bildschirms statt video.currentTime */
+let laeuft = false;
+let bilder = 0, letzteMessung = 0, bildrate = 0;
+
+function zahl(id){ return Number(document.getElementById(id).value); }
+
+/* Die Bildrate mitzumessen ist der Kern: eine 40-Hz-Schwingung braucht 80
+   Bilder pro Sekunde. Liegt die gemessene Rate darunter, kann das Gerät die
+   eingestellte Frequenz gar nicht darstellen. */
+function zeichne(zeitstempel){
+  if (!laeuft) return;
+
+  bilder++;
+  if (zeitstempel - letzteMessung >= 500) {
+    bildrate = Math.round(bilder * 1000 / (zeitstempel - letzteMessung));
+    bilder = 0; letzteMessung = zeitstempel;
+  }
+
+  const b = buehne.width, h = buehne.height;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, b, h);
+
+  if (video.videoWidth) {
+    const m = Math.min(b / video.videoWidth, h / video.videoHeight);
+    const zb = video.videoWidth * m, zh = video.videoHeight * m;
+    ctx.drawImage(video, (b - zb) / 2, (h - zh) / 2, zb, zh);
+  }
+
+  const hz = zahl("hz"), tiefe = zahl("tiefe");
+  const t = videozeit ? video.currentTime : zeitstempel / 1000;
+
+  if (rechteck) {
+    if (Math.floor(t * hz * 2) % 2) {
+      ctx.fillStyle = "rgba(0,0,0," + tiefe + ")";
+      ctx.fillRect(0, 0, b, h);
+    }
+  } else {
+    const welle = (Math.sin(t * 2 * Math.PI * hz) + 1) / 2;
+    ctx.fillStyle = "rgba(0,0,0," + (welle * tiefe).toFixed(4) + ")";
+    ctx.fillRect(0, 0, b, h);
+  }
+
+  werte.textContent =
+    "Frequenz      " + hz + " Hz\n" +
+    "Tiefe         " + tiefe.toFixed(2) + "\n" +
+    "Wellenform    " + (rechteck ? "Rechteck" : "Sinus") + "\n" +
+    "Zeitquelle    " + (videozeit ? "video.currentTime" : "Bildschirmtakt") + "\n" +
+    "\n" +
+    "Bildrate      " + bildrate + " /s\n" +
+    "benoetigt     " + (hz * 2) + " /s" +
+    (bildrate && bildrate < hz * 2 ? "   ← zu wenig" : "");
+
+  requestAnimationFrame(zeichne);
+}
+
+document.getElementById("start").addEventListener("click", () => {
+  if (laeuft) { laeuft = false; video.pause(); document.getElementById("start").textContent = "Abspielen"; return; }
+  video.currentTime = 35;          /* hinter den eingebrannten Vorlauf springen */
+  video.play().catch(f => { werte.textContent = "Video startet nicht: " + f.message; });
+  laeuft = true;
+  document.getElementById("start").textContent = "Anhalten";
+  letzteMessung = performance.now(); bilder = 0;
+  requestAnimationFrame(zeichne);
+});
+
+document.getElementById("form").addEventListener("click", e => {
+  rechteck = !rechteck;
+  e.target.textContent = rechteck ? "Rechteck" : "Sinus";
+  e.target.classList.toggle("an", !rechteck);
+});
+
+/* Prüft die offene Frage, ob video.currentTime fein genug fortschreitet, um
+   eine 40-Hz-Phase zu tragen. Wechselt die Zeitquelle auf den Takt des
+   Bildschirms, der in jedem Fall gleichmässig läuft. */
+document.getElementById("takt").addEventListener("click", e => {
+  videozeit = !videozeit;
+  e.target.textContent = videozeit ? "Zeit: Videozeit" : "Zeit: Bildschirm";
+  e.target.classList.toggle("an", !videozeit);
+});
+
+["hz","tiefe"].forEach(id =>
+  document.getElementById(id).addEventListener("input", () => {
+    document.getElementById("hzWert").textContent = zahl("hz");
+    document.getElementById("tiefeWert").textContent = zahl("tiefe").toFixed(2);
+  }));
+</script>
+</body>
+</html>

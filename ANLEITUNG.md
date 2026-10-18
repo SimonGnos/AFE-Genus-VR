@@ -178,6 +178,7 @@ brauchst du für den Bericht.
 | «Falscher Code.» | Der Code stimmt nicht mit `ADMIN_CODE` in den Supabase-Secrets überein. |
 | Änderung auf anderem Gerät nicht sichtbar | Seite dort neu laden. Der Katalog wird beim Start geladen, nicht laufend. |
 | Hochladen bricht ab | Verbindung instabil. Im WLAN wiederholen — über Mobilfunk sind einige Megabyte anfällig. |
+| Video startet am Laptop, am iPhone nicht | Der Index der MP4-Datei (`moov`) liegt am Dateiende. Safari muss dann erst die ganze Datei laden und zeigt derweil nichts. Verlustfrei reparieren: `ffmpeg -i alt.mp4 -c copy -movflags +faststart neu.mp4` — danach neu hochladen. **Jede** Datei braucht `+faststart`. |
 | Schwarzes Bild statt Video | Der Pfad in `datei` stimmt nicht mit dem echten Dateinamen überein. Gross- und Kleinschreibung ist entscheidend. |
 | Kein Ton | Kopfhörer vor dem Einlegen koppeln. Der Stummschalter am iPhone betrifft die Videowiedergabe nicht, die Lautstärkewippe aber schon. |
 | Bildschirm wird dunkel | Auto-Sperre am Gerät verlängern oder deaktivieren. |
